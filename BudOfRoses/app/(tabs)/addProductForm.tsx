@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image 
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
-import CheckBox from '@react-native-community/checkbox';
+import Checkbox from 'expo-checkbox';
 
 const AddProductForm = () => {
   const [productName, setProductName] = useState('');
@@ -140,10 +140,10 @@ const AddProductForm = () => {
       <View style={styles.checkboxContainer}>
         {Object.keys(sizes).map((size) => (
           <View key={size} style={styles.checkboxWrapper}>
-            <CheckBox
+            <Checkbox
               value={sizes[size as keyof typeof sizes]}
               onValueChange={() => handleSizeChange(size as keyof typeof sizes)}
-              tintColors={{ true: '#DBA6B6', false: '#888' }}
+              color={sizes[size as keyof typeof sizes] ? '#DBA6B6' : undefined}
             />
             <Text style={styles.checkboxLabel}>
               {size.charAt(0).toUpperCase() + size.slice(1)}
