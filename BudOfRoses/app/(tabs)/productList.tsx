@@ -243,10 +243,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#D9D3C3',
     paddingVertical: 10,
     marginHorizontal: 15,
-    marginBottom: 10, // Added margin to separate from products
+    marginBottom: 10, 
   },
   statsContent: {
-    paddingHorizontal: 5, // Adjusted horizontal padding
+    paddingHorizontal: 5, 
     gap: 12,
   },
   statCard: {
@@ -270,13 +270,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   productsListContainer: {
-    flex: 1, // Takes remaining space
-    marginTop: 0, // Remove any conflicting margins
+    flex: 1, 
+    marginTop: 0, 
   },
   listContent: {
     paddingHorizontal: 15,
     paddingBottom: 30,
-    paddingTop: 0, // Ensure no overlap with stats
+    paddingTop: 0, 
   },
   productCard: {
     backgroundColor: '#FFFFFF',
