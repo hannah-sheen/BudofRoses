@@ -17,11 +17,11 @@ const LoginScreen = () => {
   });
 
   const handleLogin = () => {
-    console.log('logged')
+
     if (username === 'Admin_01' && password === 'iamtheadmin') {
       setUsername('')
       setPassword('')
-      router.push('/(tabs)/productList');
+      router.push('/productList');
     } else {
       Alert.alert(
         'Login Failed',
@@ -31,10 +31,6 @@ const LoginScreen = () => {
       );
     }
   };
-
-  if (!fontsLoaded) {
-    return null;
-  }
 
   return (
     <KeyboardAvoidingView
@@ -95,7 +91,7 @@ const LoginScreen = () => {
         {/* Sign Up Option */}
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have an account? </Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() =>  router.push('/signUpForm')}>
             <Text style={styles.signupLink}>Sign up</Text>
           </TouchableOpacity>
         </View>
