@@ -1,75 +1,196 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const LoginScreen = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [secureTextEntry, setSecureTextEntry] = useState(true);
+  const router = useRouter();
 
-export default function HomeScreen() {
+  let [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+  });
+
+  const handleLogin = () => {
+    console.log('logged')
+    if (username === 'Admin_01' && password === 'iamtheadmin') {
+      setUsername('')
+      setPassword('')
+      router.push('/(tabs)/productList');
+    } else {
+      Alert.alert(
+        'Login Failed',
+        'Invalid username or password',
+        [{ text: 'OK' }],
+        { cancelable: false }
+      );
+    }
+  };
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <View style={styles.innerContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Login</Text>
+          <Text style={styles.subtitle}>Welcome back!</Text>
+        </View>
+
+        {/* Form */}
+        <View style={styles.form}>
+          {/* Username Field */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color="#A78A8A" style={styles.icon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor="#A78A8A"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+            />
+          </View>
+
+          {/* Password Field */}
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#A78A8A" style={styles.icon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#A78A8A"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={secureTextEntry}
+            />
+            <TouchableOpacity
+              onPress={() => setSecureTextEntry(!secureTextEntry)}
+              style={styles.eyeIcon}
+            >
+              <Ionicons
+                name={secureTextEntry ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color="#A78A8A"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Login Button */}
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Sign Up Option */}
+        <View style={styles.signupContainer}>
+          <Text style={styles.signupText}>Don't have an account? </Text>
+          <TouchableOpacity>
+            <Text style={styles.signupLink}>Sign up</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#DBA6B6',
   },
-  stepContainer: {
-    gap: 8,
+  innerContainer: {
+    flex: 1,
+    paddingHorizontal: 30,
+    justifyContent: 'center',
+  },
+  header: {
+    marginBottom: 40,
+  },
+  title: {
+    fontSize: 32,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#4B3130', // Changed to dark brown
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  subtitle: {
+    fontSize: 16,
+    fontFamily: 'Poppins_400Regular',
+    color: '#4B3130', // Changed to dark brown
+  },
+  form: {
+    marginBottom: 20,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(75, 49, 48, 0.1)', // Using #4B3130 with opacity
+    borderColor: '#4B3130', // Added border
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    marginBottom: 20,
+  },
+  icon: {
+    marginRight: 10,
+    color: '#4B3130', // Changed to dark brown
+  },
+  input: {
+    flex: 1,
+    height: 50,
+    color: '#4B3130', // Changed to dark brown
+    fontFamily: 'Poppins_400Regular',
+  },
+  eyeIcon: {
+    padding: 10,
+  },
+  loginButton: {
+    backgroundColor: '#4B3130', // Changed to dark brown
+    borderRadius: 8,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#4B3130', // Added shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  loginButtonText: {
+    color: '#FFFFFF', // Changed to white for contrast
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 16,
+    letterSpacing: 1, // Added spacing to ensure "Login" shows fully
+    width: '100%',
+    textAlign: 'center',
+  },
+  signupContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  signupText: {
+    color: '#4B3130', // Changed to dark brown
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 14,
+  },
+  signupLink: {
+    color: '#4B3130', // Changed to dark brown
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
 });
+
+export default LoginScreen;
