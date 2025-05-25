@@ -105,7 +105,7 @@ const ProductsListPage = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Flowers</Text>
+        <Text style={styles.headerTitle}>Bud of Roses</Text>
         <TouchableOpacity onPress={() => router.push('/(tabs)/addToCart')}>
           <Ionicons name="cart" size={24} color="#fff" />
         </TouchableOpacity>
