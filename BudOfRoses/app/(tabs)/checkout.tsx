@@ -1,15 +1,26 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  StyleSheet,
+  Alert,
+  ScrollView,
+} from 'react-native';
 import { useCart } from '../(tabs)/addToCart';
+import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 
 const Checkout = () => {
   const { cart, dispatch } = useCart();
+  const navigation = useNavigation();
 
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [email, setEmail] = useState('');
 
-  const totalPrice = cart.reduce((sum: number, item: any) => sum + (item.price || 0) * (item.quantity || 1), 0);
+  const totalPrice = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const handlePlaceOrder = () => {
     if (!name || !address || !email) {
@@ -17,30 +28,32 @@ const Checkout = () => {
       return;
     }
 
-    if (cart.length === 0) {
+    if (cart.items.length === 0) {
       Alert.alert('Cart is Empty', 'Please add items to your cart before placing an order.');
       return;
     }
 
-    // Simulate placing order
     Alert.alert('Order Placed', `Thank you, ${name}! Your order total is $${totalPrice.toFixed(2)}`);
     dispatch({ type: 'CLEAR_CART' });
+
     setName('');
     setAddress('');
     setEmail('');
+
+    router.replace('/(tabs)/userProductList');
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.heading}>Checkout</Text>
 
-      {cart.length === 0 ? (
+      {cart.items.length === 0 ? (
         <Text style={styles.emptyCart}>Your cart is empty.</Text>
       ) : (
-        cart.map((item: any) => (
+        cart.items.map(item => (
           <View key={item.id} style={styles.item}>
             <Text style={styles.itemText}>{item.name} x {item.quantity}</Text>
-            <Text style={styles.itemText}>${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</Text>
+            <Text style={styles.itemText}>${(item.price * item.quantity).toFixed(2)}</Text>
           </View>
         ))
       )}
