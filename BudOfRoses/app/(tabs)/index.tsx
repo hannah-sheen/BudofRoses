@@ -1,13 +1,32 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+} from '@expo-google-fonts/poppins';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { database } from './firebaseConfig';
+import { ref, get, child } from 'firebase/database';
 
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
+  const [loading, setLoading] = useState(false);
+
   const router = useRouter();
 
   let [fontsLoaded] = useFonts({
@@ -16,85 +35,112 @@ const LoginScreen = () => {
     Poppins_600SemiBold,
   });
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    if (!username || !password) {
+      Alert.alert('Missing Info', 'Please enter both username and password.');
+      return;
+    }
 
+    setLoading(true);
+
+    // Admin login
     if (username === 'Admin_01' && password === 'iamtheadmin') {
-      setUsername('')
-      setPassword('')
+      setLoading(false);
+      setUsername('');
+      setPassword('');
       router.push('/productList');
-    } else {
-      Alert.alert(
-        'Login Failed',
-        'Invalid username or password',
-        [{ text: 'OK' }],
-        { cancelable: false }
-      );
+      return;
+    }
+
+    try {
+      const dbRef = ref(database);
+      const snapshot = await get(child(dbRef, 'users'));
+
+      if (snapshot.exists()) {
+        const users = snapshot.val() as { [key: string]: any };
+
+        const matchedUser = Object.values(users).find(
+          (user: any) =>
+            user.username === username && user.password === password
+        );
+
+        if (matchedUser) {
+          setLoading(false);
+          setUsername('');
+          setPassword('');
+          alert('Welcome User!')
+          // router.push('/'); // Replace with your actual route
+        } else {
+          setLoading(false);
+          Alert.alert('Login Failed', 'Invalid username or password.');
+        }
+      } else {
+        setLoading(false);
+        Alert.alert('No Users', 'No registered users found.');
+      }
+    } catch (error) {
+      setLoading(false);
+      console.error('Login Error:', error);
+      Alert.alert('Error', 'An error occurred while logging in.');
     }
   };
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <View style={styles.innerContainer}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Login</Text>
-          <Text style={styles.subtitle}>Welcome back!</Text>
-        </View>
+      <Text style={styles.title}>Welcome Back</Text>
+      <Text style={styles.subtitle}>Please sign in to your account</Text>
 
-        {/* Form */}
-        <View style={styles.form}>
-          {/* Username Field */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color="#A78A8A" style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Username"
-              placeholderTextColor="#A78A8A"
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-            />
-          </View>
+      <TextInput style={styles.input}
+        placeholder="Username"
+        placeholderTextColor="#aaa"
+        value={username}
+        onChangeText={setUsername}
+      />
 
-          {/* Password Field */}
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#A78A8A" style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#A78A8A"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={secureTextEntry}
-            />
-            <TouchableOpacity
-              onPress={() => setSecureTextEntry(!secureTextEntry)}
-              style={styles.eyeIcon}
-            >
-              <Ionicons
-                name={secureTextEntry ? "eye-off-outline" : "eye-outline"}
-                size={20}
-                color="#A78A8A"
-              />
-            </TouchableOpacity>
-          </View>
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Password"
+          placeholderTextColor="#aaa"
+          secureTextEntry={secureTextEntry}
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity
+          onPress={() => setSecureTextEntry(!secureTextEntry)}
+        >
+          <Ionicons
+            name={secureTextEntry ? 'eye-off' : 'eye'}
+            size={24}
+            color="gray"
+          />
+        </TouchableOpacity>
+      </View>
 
-          {/* Login Button */}
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Login</Text>
-          </TouchableOpacity>
-        </View>
+      <TouchableOpacity
+        style={styles.loginButton}
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.loginButtonText}>Login</Text>
+        )}
+      </TouchableOpacity>
 
-        {/* Sign Up Option */}
-        <View style={styles.signupContainer}>
-          <Text style={styles.signupText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() =>  router.push('/signUpForm')}>
-            <Text style={styles.signupLink}>Sign up</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.signupContainer}>
+        <Text style={styles.signupText}>Don’t have an account?</Text>
+        <TouchableOpacity onPress={() => router.push('/signup')}>
+          <Text style={styles.signupLink}> Sign up</Text>
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
@@ -104,88 +150,80 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#DBA6B6',
-  },
-  innerContainer: {
-    flex: 1,
-    paddingHorizontal: 30,
+    alignItems: 'center',
     justifyContent: 'center',
-  },
-  header: {
-    marginBottom: 40,
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontFamily: 'Poppins_600SemiBold',
-    color: '#4B3130', // Changed to dark brown
-    marginBottom: 8,
+    marginBottom: 10,
+    color: '#333',
   },
   subtitle: {
     fontSize: 16,
     fontFamily: 'Poppins_400Regular',
-    color: '#4B3130', // Changed to dark brown
-  },
-  form: {
-    marginBottom: 20,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(75, 49, 48, 0.1)', // Using #4B3130 with opacity
-    borderColor: '#4B3130', // Added border
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 20,
-  },
-  icon: {
-    marginRight: 10,
-    color: '#4B3130', // Changed to dark brown
+    color: '#666',
+    marginBottom: 30,
   },
   input: {
-    flex: 1,
+    width: '100%',
     height: 50,
-    color: '#4B3130', // Changed to dark brown
+    backgroundColor: '#f1f1f1',
+    borderRadius: 8,
+    borderColor: '#4B3130',
+    borderWidth: 1,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    fontSize: 16,
     fontFamily: 'Poppins_400Regular',
+    color: '#4B3130',
   },
-  eyeIcon: {
-    padding: 10,
+  passwordContainer: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#f1f1f1',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    borderColor: '#4B3130',
+    borderWidth: 1,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  passwordInput: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: 'Poppins_400Regular',
+    color: '#4B3130',
   },
   loginButton: {
-    backgroundColor: '#4B3130', // Changed to dark brown
-    borderRadius: 8,
+    width: '100%',
     height: 50,
-    justifyContent: 'center',
+    backgroundColor: '#4B3130',
+    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#4B3130', // Added shadow
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
+    justifyContent: 'center',
+    marginBottom: 25,
   },
   loginButtonText: {
-    color: '#FFFFFF', // Changed to white for contrast
-    fontFamily: 'Poppins_600SemiBold',
+    color: '#fff',
     fontSize: 16,
-    letterSpacing: 1, // Added spacing to ensure "Login" shows fully
-    width: '100%',
-    textAlign: 'center',
+    fontFamily: 'Poppins_500Medium',
   },
   signupContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
   },
   signupText: {
-    color: '#4B3130', // Changed to dark brown
-    fontFamily: 'Poppins_400Regular',
     fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+    color: '#4B3130',
   },
   signupLink: {
-    color: '#4B3130', // Changed to dark brown
-    fontFamily: 'Poppins_600SemiBold',
     fontSize: 14,
-    textDecorationLine: 'underline',
+    fontFamily: 'Poppins_500Medium',
+    color: '#4B3130',
   },
 });
 

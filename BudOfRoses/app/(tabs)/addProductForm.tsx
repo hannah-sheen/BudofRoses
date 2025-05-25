@@ -34,7 +34,6 @@ const AddProductForm = ({}) => {
     'Dried Flowers'
   ];
 
-  
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -75,7 +74,7 @@ const AddProductForm = ({}) => {
       {/* Back Button */}
       <TouchableOpacity 
         style={styles.backButton} 
-        onPress={() => router.push('/(tabs)/productList')}
+        onPress={() => router.push('/productList')}
       >
         <Ionicons name="arrow-back" size={24} color="#4B3130" />
       </TouchableOpacity>

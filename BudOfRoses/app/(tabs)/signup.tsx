@@ -3,6 +3,10 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Activi
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
+import {database} from './firebaseConfig'
+import { ref, set, get, child } from 'firebase/database';
+
+
 
 const CustomerSignupForm = () => {
   const router = useRouter();
@@ -21,6 +25,7 @@ const CustomerSignupForm = () => {
   });
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [confirmSecureTextEntry, setConfirmSecureTextEntry] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Load Poppins fonts
   const [fontsLoaded] = useFonts({
@@ -44,28 +49,86 @@ const CustomerSignupForm = () => {
     });
   };
 
-  const handleSubmit = () => {
-    // Validate form data
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match!");
-      return;
+  const handleSubmit = async () => {
+  if (formData.password !== formData.confirmPassword) {
+    alert("Passwords don't match!");
+    return;
+  }
+
+  if (!formData.username || !formData.email) {
+    alert("Username and Email are required.");
+    return;
+  }
+
+  setLoading(true);
+  const dbRef = ref(database);
+
+  try {
+    const snapshot = await get(child(dbRef, 'users'));
+    if (snapshot.exists()) {
+      const users = snapshot.val() as { [key: string]: any };
+
+      const usernameExists = Object.values(users).some(
+        user => user.username === formData.username
+      );
+      const emailExists = Object.values(users).some(
+        user => user.email === formData.email
+      );
+
+      if (usernameExists) {
+          setLoading(false);
+          alert('Username already exists. Please choose another.');
+          return;
+        }
+
+        if (emailExists) {
+          setLoading(false);
+          alert('Email already exists. Please use another.');
+          return;
+        }
     }
-    // Submit logic here
-    console.log('Form submitted:', formData);
-    // router.push('/login'); // Uncomment to navigate after submission
-  };
+
+    const userId = formData.username; 
+    await set(ref(database, 'users/' + userId), {
+      ...formData,
+      createdAt: new Date().toISOString()
+    });
+
+     setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      username: '',
+      password: '',
+      confirmPassword: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      phone: '',
+    });
+
+    setLoading(false);
+    alert('Account created successfully!');
+    router.push('/'); // Navigate to the login screen
+
+  } catch (error) {
+    setLoading(false);
+    console.error("Signup error:", error);
+    alert("Something went wrong. Please try again later.");
+  }
+};
+
+
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* Back Button */}
-      <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={() => router.back()}
-      >
-        <Ionicons name="arrow-back" size={24} color="#4B3130" />
-      </TouchableOpacity>
+    <>
+      <ScrollView contentContainerStyle={styles.container}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#4B3130" />
+        </TouchableOpacity>
 
-      <Text style={[styles.header, { fontFamily: 'Poppins_600SemiBold' }]}>Create Account</Text>
+        <Text style={[styles.header, { fontFamily: 'Poppins_600SemiBold' }]}>Create Account</Text>
 
       {/* Personal Information Section */}
       <Text style={[styles.sectionHeader, { fontFamily: 'Poppins_500Medium' }]}>Personal Information</Text>
@@ -225,24 +288,35 @@ const CustomerSignupForm = () => {
       <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
         <Text style={[styles.submitButtonText, { fontFamily: 'Poppins_600SemiBold' }]}>Create Account</Text>
       </TouchableOpacity>
+ </ScrollView>
 
-      {/* Login Link */}
-      <View style={styles.loginContainer}>
-        <Text style={[styles.loginText, { fontFamily: 'Poppins_400Regular' }]}>Already have an account? </Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={[styles.loginLink, { fontFamily: 'Poppins_600SemiBold' }]}>Login</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      {/* Loading Overlay */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#4B3130" />
+        </View>
+      )}
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F7F1E5',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(247, 241, 229, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
   },
   container: {
     flexGrow: 1,

@@ -87,7 +87,7 @@ const ProductsListPage = () => {
   );
 
   const handleAddProduct = () => {
-    router.push('/(tabs)/addProductForm');
+    router.push('/addProductForm');
   };
 
   const renderProductItem = ({ item }: { item: Product }) => (
