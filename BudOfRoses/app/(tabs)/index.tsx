@@ -89,6 +89,10 @@ const LoginScreen = () => {
     return null;
   }
 
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
