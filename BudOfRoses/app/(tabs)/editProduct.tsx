@@ -148,7 +148,7 @@ const EditProductForm = () => {
       {/* Back Button */}
       <TouchableOpacity 
         style={styles.backButton} 
-        onPress={() => router.back()}
+        onPress={() => router.push('/productDetails')}
       >
         <Ionicons name="arrow-back" size={24} color="#4B3130" />
       </TouchableOpacity>
@@ -255,7 +255,7 @@ const EditProductForm = () => {
 };
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -264,12 +264,13 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 20,
+    paddingTop: 80,  // Increased from default to push content down
     paddingBottom: 40,
     backgroundColor: '#F0DCD3',
   },
   backButton: {
     position: 'absolute',
-    top: 60,
+    top: 40,  // Lowered from 60 to 40
     left: 10,
     zIndex: 1,
     padding: 8,
