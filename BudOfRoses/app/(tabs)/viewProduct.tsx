@@ -1,5 +1,4 @@
-// viewProduct.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,36 +11,69 @@ const ViewProduct = () => {
   const [quantity, setQuantity] = useState(1);
   const router = useRouter();
 
+  // Reset quantity to 1 when a new product is viewed
+  useEffect(() => {
+    setQuantity(1);
+  }, [parsed?.id]);
+
   const addToCart = () => {
     dispatch({
       type: 'ADD_TO_CART',
       product: parsed,
       quantity,
     });
-    router.replace('/(tabs)/addToCart');
+
+    Alert.alert(
+      'Success',
+      'Item Added to cart!',
+      [
+        {
+          text: 'OK',
+          onPress: () => router.replace('/(tabs)/addToCart'),
+        },
+      ],
+      { cancelable: false }
+    );
   };
 
-  if (!parsed) return <Text>Product not found</Text>;
+  if (!parsed) {
+    return (
+      <View style={styles.container}>
+        <Text>Product not found</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* Header with Back Button */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.replace('/(tabs)/userProductList')}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Product Details</Text>
-        <View style={{ width: 24 }} /> {/* Placeholder for alignment */}
+        <View style={{ width: 24 }} />
       </View>
 
       <Image source={{ uri: parsed.image }} style={styles.image} />
+
       <Text style={styles.name}>{parsed.name}</Text>
-      <Text style={styles.price}>${parsed.price.toFixed(2)}</Text>
+      <Text style={styles.price}>
+        {parsed.price !== undefined && parsed.price !== null
+          ? `$${parsed.price.toFixed(2)}`
+          : 'Price not available'}
+      </Text>
       <Text style={styles.detail}>Category: {parsed.category}</Text>
       <Text style={styles.detail}>In Stock: {parsed.stock}</Text>
       <Text style={styles.detail}>Sales: {parsed.sales}</Text>
-      <Text style={styles.detail}>Rating: {parsed.rating} ⭐</Text>
 
+      {/* Rating */}
+      <View style={styles.ratingRow}>
+        <Text style={styles.detail}>Rating: {parsed.rating}</Text>
+        <Ionicons name="star" size={16} color="#FFD700" style={{ marginLeft: 4 }} />
+      </View>
+
+      {/* Quantity Adjuster */}
       <View style={styles.quantityRow}>
         <TouchableOpacity onPress={() => setQuantity(Math.max(1, quantity - 1))}>
           <Ionicons name="remove-circle" size={30} color="#4B3130" />
@@ -66,20 +98,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#4B3130',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingTop: 50,
+    marginTop: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 15,
-    width: '100%',
+    width: '115%',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-  },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: '#fff' },
   image: { width: 200, height: 200, borderRadius: 10, marginVertical: 15 },
   name: { fontSize: 22, fontWeight: 'bold', color: '#4B3130', textAlign: 'center' },
   price: { fontSize: 20, color: '#ACBA96', marginBottom: 10 },
   detail: { fontSize: 16, color: '#4B3130', marginVertical: 2 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 2 },
   quantityRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
   quantity: { marginHorizontal: 15, fontSize: 18 },
   addButton: {

@@ -3,14 +3,15 @@ import {
   View,
   Text,
   FlatList,
-  Button,
   TouchableOpacity,
   Alert,
   StyleSheet,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
+// Types
 type Product = {
   id: string;
   name: string;
@@ -28,6 +29,7 @@ type Action =
   | { type: 'REMOVE_FROM_CART'; id: string }
   | { type: 'CLEAR_CART' };
 
+// Reducer
 const cartReducer = (state: CartState, action: Action): CartState => {
   switch (action.type) {
     case 'ADD_TO_CART': {
@@ -48,20 +50,19 @@ const cartReducer = (state: CartState, action: Action): CartState => {
         };
       }
     }
-    case 'REMOVE_FROM_CART': {
+    case 'REMOVE_FROM_CART':
       return {
         ...state,
         items: state.items.filter(item => item.id !== action.id),
       };
-    }
-    case 'CLEAR_CART': {
+    case 'CLEAR_CART':
       return { items: [] };
-    }
     default:
       return state;
   }
 };
 
+// Context
 const CartContext = createContext<{
   cart: CartState;
   dispatch: React.Dispatch<Action>;
@@ -82,27 +83,7 @@ export const useCart = () => {
   return context;
 };
 
-export const ProductList: React.FC<{ products: Product[] }> = ({ products }) => {
-  const { dispatch } = useCart();
-
-  return (
-    <FlatList
-      data={products}
-      keyExtractor={item => item.id}
-      renderItem={({ item }) => (
-        <View style={styles.productItem}>
-          <Text style={styles.productName}>{item.name}</Text>
-          <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
-          <Button
-            title="Add to Cart"
-            onPress={() => dispatch({ type: 'ADD_TO_CART', product: item, quantity: 1 })}
-          />
-        </View>
-      )}
-    />
-  );
-};
-
+// Cart Screen
 export const CartScreen: React.FC = () => {
   const navigation = useNavigation();
   const { cart, dispatch } = useCart();
@@ -115,16 +96,20 @@ export const CartScreen: React.FC = () => {
     }
 
     Alert.alert('Success', 'Checkout successful!');
-    router.replace('/(tabs)/checkout'); 
+    router.replace('/(tabs)/checkout');
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Text style={styles.backButtonText}>← Back</Text>
+      <TouchableOpacity
+        onPress={() => router.push('/(tabs)/userProductList')}
+        style={styles.backButton}
+      >
+        <Ionicons name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
 
       <Text style={styles.cartTitle}>Cart</Text>
+
       {cart.items.length === 0 ? (
         <Text style={styles.emptyText}>Your cart is empty.</Text>
       ) : (
@@ -146,16 +131,23 @@ export const CartScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
           )}
+          ListFooterComponent={
+            <View style={styles.footerContainer}>
+              <Text style={styles.totalText}>Total: ${total.toFixed(2)}</Text>
+              <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
+                <Text style={styles.checkoutText}>Checkout</Text>
+              </TouchableOpacity>
+            </View>
+          }
         />
       )}
-      <Text style={styles.totalText}>Total: ${total.toFixed(2)}</Text>
-      <Button title="Checkout" onPress={handleCheckout} />
     </View>
   );
 };
 
 export default CartScreen;
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -163,38 +155,27 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   backButton: {
-  marginBottom: 10,
-  marginTop: 40,
-  paddingVertical: 6,
-  paddingHorizontal: 12,
-  backgroundColor: '#eee',
-  alignSelf: 'flex-start',
-  borderRadius: 8,
+    marginBottom: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#4B3130',
+    alignSelf: 'flex-start',
+    borderRadius: 8,
   },
   backButtonText: {
-  fontSize: 16,
-  color: '#4B0082',
-  fontWeight: '600',
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
   },
   cartTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 15,
   },
-  productItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  productName: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  productPrice: {
+  emptyText: {
+    fontStyle: 'italic',
+    color: '#888',
     fontSize: 16,
-    marginBottom: 8,
-    color: '#666',
   },
   cartItem: {
     backgroundColor: '#f2f2f2',
@@ -213,13 +194,26 @@ const styles = StyleSheet.create({
     color: 'red',
     marginTop: 4,
   },
-  emptyText: {
-    fontStyle: 'italic',
-    color: '#888',
-    fontSize: 16,
+  footerContainer: {
+    marginTop: 20,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#ccc',
   },
   totalText: {
-    marginTop: 20,
+    marginTop: 10,
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  checkoutButton: {
+    marginTop: 10,
+    backgroundColor: '#4B3130',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  checkoutText: {
+    color: '#fff',
     fontWeight: '600',
     fontSize: 16,
   },

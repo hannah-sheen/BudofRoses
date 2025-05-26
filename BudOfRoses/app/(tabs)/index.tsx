@@ -18,7 +18,7 @@ const LoginScreen = () => {
 
   const handleLogin = () => {
     console.log('logged')
-    if (username === 'user' && password === 'user') {
+    if (username === '' && password === '') {
       setUsername('')
       setPassword('')
       router.push('/(tabs)/userProductList');

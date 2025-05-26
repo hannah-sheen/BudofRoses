@@ -19,7 +19,7 @@ type Product = {
   rating: number;
 };
 
-const ProductsListPage = () => {
+const UserProductsListPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
   const { cart } = useCart();
@@ -168,4 +168,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProductsListPage;
+export default UserProductsListPage;
