@@ -213,11 +213,24 @@ const AddProductForm = ({}) => {
 };
 
 const styles = StyleSheet.create({
+   loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F0DCD3',
+  },
   container: {
     flexGrow: 1,
     padding: 20,
     paddingBottom: 40,
     backgroundColor: '#F0DCD3',
+  },
+   backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 10,
+    zIndex: 1,
+    padding: 8,
   },
   header: {
     fontSize: 24,
