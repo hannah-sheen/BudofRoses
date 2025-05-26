@@ -154,7 +154,7 @@ const AddProductForm = ({}) => {
       />
 
       {/* Price */}
-      <Text style={styles.label}>Price ($)</Text>
+      <Text style={styles.label}>Price (₱)</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter price"

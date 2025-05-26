@@ -67,30 +67,37 @@ const ProductsListPage = () => {
   };
 
   const renderProductItem = ({ item }: { item: Product }) => (
-    <View style={styles.productCard}>
-      <Image source={{ uri: item.image }} style={styles.productImage} />
-      <View style={styles.productInfo}>
-        <Text style={styles.productName}>{item.productName}</Text>
-        <Text style={styles.productCategory}>{item.category}</Text>
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Ionicons name="pricetag" size={16} color="#4B3130" />
-            <Text style={styles.statText}>₱{item.price.toFixed(2)}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="cart" size={16} color="#4B3130" />
-            <Text style={styles.statText}>{item.sales ?? 0}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="cube" size={16} color="#4B3130" />
-            <Text style={styles.statText}>{item.stocks}</Text>
+    <TouchableOpacity 
+      onPress={() => router.push({
+        pathname: '/productDetails',
+        params: { productId: item.id }  
+      })}
+    >
+      <View style={styles.productCard}>
+        <Image source={{ uri: item.image }} style={styles.productImage} />
+        <View style={styles.productInfo}>
+          <Text style={styles.productName}>{item.productName}</Text>
+          <Text style={styles.productCategory}>{item.category}</Text>
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Ionicons name="pricetag" size={16} color="#4B3130" />
+              <Text style={styles.statText}>₱{item.price.toFixed(2)}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="cart" size={16} color="#4B3130" />
+              <Text style={styles.statText}>{item.sales ?? 0}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="cube" size={16} color="#4B3130" />
+              <Text style={styles.statText}>{item.stocks}</Text>
+            </View>
           </View>
         </View>
+        <TouchableOpacity style={styles.moreButton}>
+          <Ionicons name="ellipsis-vertical" size={20} color="#4B3130" />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.moreButton}>
-        <Ionicons name="ellipsis-vertical" size={20} color="#4B3130" />
-      </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
