@@ -192,10 +192,10 @@ const AddProductForm = ({}) => {
       <View style={styles.checkboxContainer}>
         {Object.keys(sizes).map((size) => (
           <View key={size} style={styles.checkboxWrapper}>
-            <CheckBox
+            <Checkbox
               value={sizes[size as keyof typeof sizes]}
               onValueChange={() => handleSizeChange(size as keyof typeof sizes)}
-              tintColors={{ true: '#DBA6B6', false: '#888' }}
+              color={sizes[size as keyof typeof sizes] ? '#4B3130' : undefined}
             />
             <Text style={styles.checkboxLabel}>
               {size.charAt(0).toUpperCase() + size.slice(1)}
