@@ -5,10 +5,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
-import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
+import {database} from './firebaseConfig'
+import { ref, push} from 'firebase/database';
 
 const AddProductForm = ({}) => {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
   const [productName, setProductName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -55,19 +57,57 @@ const AddProductForm = ({}) => {
     }));
   };
 
-  const handleSubmit = () => {
+ const handleSubmit = async () => {
+    if (
+      !productName.trim() ||
+      !description.trim() ||
+      !price ||
+      !quantity ||
+      !category ||
+      !image ||
+      Object.values(sizes).every((val) => !val)
+    ) {
+      alert('Please fill in all fields and select at least one size.');
+      return;
+    }
+
     const productData = {
       productName,
       description,
       price: parseFloat(price),
-      quantity: parseInt(quantity),
+      stocks: parseInt(quantity),
       category,
-      sizes: Object.keys(sizes).filter(size => sizes[size as keyof typeof sizes]),
-      image
+      sizes: Object.keys(sizes).filter((size) => sizes[size as keyof typeof sizes]),
+      image,
+      createdAt: new Date().toISOString(),
+      sales: 0,
     };
-    console.log('Product Data:', productData);
-    // Here you would typically send the data to your backend
+
+    try {
+      setLoading(true); 
+
+      const productListRef = ref(database, 'productlist');
+      await push(productListRef, productData);
+
+      setLoading(false);
+      alert('Product added successfully!');
+      router.push('/productList');
+    } catch (error) {
+      console.error('Error adding product:', error);
+      setLoading(false);
+      alert('Failed to add product.');
+    }
   };
+
+
+  if (loading) {
+  return (
+    <View style={styles.loadingContainer}>
+      <Ionicons name="refresh-circle" size={60} color="#4B3130" />
+      <Text style={[styles.loadingText, { fontFamily: 'Poppins_500Medium' }]}>Adding product...</Text>
+    </View>
+  );
+}
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -127,7 +167,7 @@ const AddProductForm = ({}) => {
       />
 
       {/* Quantity */}
-      <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Available Quantity</Text>
+      <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Available Stocks</Text>
       <TextInput
         style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
         placeholder="Enter available quantity"
@@ -289,6 +329,11 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
   },
+  loadingText: {
+  marginTop: 10,
+  fontSize: 18,
+  color: '#4B3130',
+},
 });
 
 export default AddProductForm;

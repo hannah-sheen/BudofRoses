@@ -1,75 +1,26 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { useRouter } from 'expo-router';
+import { database } from './firebaseConfig';
+import { onValue, ref } from 'firebase/database';
 
 type Product = {
   id: string;
-  name: string;
+  productName: string;
   image: string;
   price: number;
   category: string;
   sales: number;
-  stock: number;
-  rating: number;
+  stocks: number;
 };
 
 const ProductsListPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: '1',
-      name: 'Red Roses Bouquet',
-      image: 'https://via.placeholder.com/150',
-      price: 29.99,
-      category: 'Roses',
-      sales: 124,
-      stock: 45,
-      rating: 4.8
-    },
-    {
-      id: '2',
-      name: 'Sunflower Arrangement',
-      image: 'https://via.placeholder.com/150',
-      price: 24.99,
-      category: 'Sunflowers',
-      sales: 89,
-      stock: 32,
-      rating: 4.6
-    },
-    {
-      id: '3',
-      name: 'Mixed Spring Flowers',
-      image: 'https://via.placeholder.com/150',
-      price: 34.99,
-      category: 'Mixed Bouquets',
-      sales: 156,
-      stock: 28,
-      rating: 4.9
-    },
-    {
-      id: '4',
-      name: 'White Orchids',
-      image: 'https://via.placeholder.com/150',
-      price: 39.99,
-      category: 'Orchids',
-      sales: 72,
-      stock: 15,
-      rating: 4.7
-    },
-    {
-      id: '5',
-      name: 'Tulips Collection',
-      image: 'https://via.placeholder.com/150',
-      price: 27.99,
-      category: 'Tulips',
-      sales: 103,
-      stock: 37,
-      rating: 4.5
-    },
-  ]);
 
   let [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -77,13 +28,38 @@ const ProductsListPage = () => {
     Poppins_600SemiBold,
   });
 
-  if (!fontsLoaded) {
-    return null;
+  useEffect(() => {
+    const productsRef = ref(database, 'productlist');
+    const unsubscribe = onValue(productsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const loadedProducts = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setProducts(loadedProducts);
+      } else {
+        setProducts([]);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (!fontsLoaded || loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4B3130" />
+        <Text style={styles.loadingText}>Loading products...</Text>
+      </View>
+    );
   }
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProducts = products.filter(
+    (product) =>
+      product.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleAddProduct = () => {
@@ -94,25 +70,21 @@ const ProductsListPage = () => {
     <View style={styles.productCard}>
       <Image source={{ uri: item.image }} style={styles.productImage} />
       <View style={styles.productInfo}>
-        <Text style={styles.productName}>{item.name}</Text>
+        <Text style={styles.productName}>{item.productName}</Text>
         <Text style={styles.productCategory}>{item.category}</Text>
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Ionicons name="pricetag" size={16} color="#4B3130" />
-            <Text style={styles.statText}>${item.price.toFixed(2)}</Text>
+            <Text style={styles.statText}>₱{item.price.toFixed(2)}</Text>
           </View>
           <View style={styles.statItem}>
             <Ionicons name="cart" size={16} color="#4B3130" />
-            <Text style={styles.statText}>{item.sales}</Text>
+            <Text style={styles.statText}>{item.sales ?? 0}</Text>
           </View>
           <View style={styles.statItem}>
             <Ionicons name="cube" size={16} color="#4B3130" />
-            <Text style={styles.statText}>{item.stock}</Text>
+            <Text style={styles.statText}>{item.stocks}</Text>
           </View>
-        </View>
-        <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={styles.ratingText}>{item.rating}</Text>
         </View>
       </View>
       <TouchableOpacity style={styles.moreButton}>
@@ -143,13 +115,9 @@ const ProductsListPage = () => {
         />
       </View>
 
-      {/* Stats Overview - Now in its own container with proper spacing */}
+      {/* Stats */}
       <View style={styles.statsContainerWrapper}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.statsContent}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsContent}>
           <View style={styles.statCard}>
             <Ionicons name="grid" size={24} color="#4B3130" />
             <Text style={styles.statCardTitle}>Total Products</Text>
@@ -159,29 +127,31 @@ const ProductsListPage = () => {
             <Ionicons name="cart" size={24} color="#4B3130" />
             <Text style={styles.statCardTitle}>Total Sales</Text>
             <Text style={styles.statCardValue}>
-              {products.reduce((sum, product) => sum + product.sales, 0)}
+              {products.reduce((sum, product) => sum + (product.sales || 0), 0)}
             </Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="warning" size={24} color="#4B3130" />
             <Text style={styles.statCardTitle}>Low Stock</Text>
-            <Text style={styles.statCardValue}>
-              {products.filter(p => p.stock < 20).length}
-            </Text>
+            <Text style={styles.statCardValue}>{products.filter((p) => p.stocks < 20).length}</Text>
           </View>
         </ScrollView>
       </View>
 
-      {/* Products List - Now with proper top margin */}
+      {/* Product List */}
       <View style={styles.productsListContainer}>
         <FlatList
           data={filteredProducts}
           renderItem={renderProductItem}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No products found</Text>
+              <Text style={styles.emptyText}>
+                {products.length === 0
+                  ? 'No products in inventory yet.'
+                  : 'No products match your search.'}
+              </Text>
             </View>
           }
         />
@@ -345,6 +315,18 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#4B3130',
     fontSize: 16,
+    fontFamily: 'Poppins_500Medium',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#D9D3C3',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#4B3130',
     fontFamily: 'Poppins_500Medium',
   },
 });
