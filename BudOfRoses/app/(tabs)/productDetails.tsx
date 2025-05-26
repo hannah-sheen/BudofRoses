@@ -54,13 +54,13 @@ const ProductDetails = () => {
   }, [productId]);
 
   const handleEdit = () => {
-    if (!product) return;
-    alert('Edit')
-    // router.push({
-    //   pathname: '/editProductForm',
-    //   params: { product: JSON.stringify(product) },
-    // });
+    if (!product?.id) return;
+    router.push({
+        pathname: '/editProduct',
+        params: { productId: product.id },
+    });
   };
+
 
   const handleDelete = () => {
     Alert.alert(
