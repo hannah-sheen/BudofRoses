@@ -1,63 +1,153 @@
-// app/(tabs)/orderStatus.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { getDatabase, ref, set, get } from 'firebase/database';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
+import { getDatabase, ref, get } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { Picker } from '@react-native-picker/picker';
 import Navbar from './navBar';
 
-
 const OrderStatus = () => {
-  const [isConfirmed, setIsConfirmed] = useState(false);
   const db = getDatabase();
   const auth = getAuth();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [filterStatus, setFilterStatus] = useState('All');
 
   useEffect(() => {
-    const fetchOrderStatus = async () => {
+    const fetchOrders = async () => {
       const user = auth.currentUser;
       if (user) {
-        const statusRef = ref(db, `orders/${user.uid}/status`);
-        const snapshot = await get(statusRef);
-        if (snapshot.exists()) {
-          setIsConfirmed(snapshot.val() === 'Received');
+        try {
+          // Step 1: Get username from users/{uid}/username
+          const usernameRef = ref(db, `users/${user.uid}/username`);
+          const usernameSnap = await get(usernameRef);
+
+          if (!usernameSnap.exists()) {
+            console.warn('Username not found');
+            setOrders([]);
+            return;
+          }
+
+          const username = usernameSnap.val();
+
+          // Step 2: Use username to fetch orders from orders/{username}
+          const ordersRef = ref(db, `orders/${username}`);
+          const ordersSnap = await get(ordersRef);
+
+          if (ordersSnap.exists()) {
+            const ordersData = ordersSnap.val();
+            const entries = Object.entries(ordersData).filter(
+              ([key]) => key !== 'status'
+            );
+            setOrders(entries);
+          } else {
+            setOrders([]);
+          }
+        } catch (error) {
+          console.error('Error fetching orders:', error);
+          setOrders([]);
         }
       }
     };
 
-    fetchOrderStatus();
+    fetchOrders();
   }, []);
 
-  const handleConfirm = async () => {
-    const user = auth.currentUser;
-    if (user) {
-      await set(ref(db, `orders/${user.uid}/status`), 'Received');
-      setIsConfirmed(true);
-      Alert.alert('Order Received', 'Thank you for confirming your order.');
-    }
+  const formatDate = (timestamp: string) => {
+    const date = new Date(parseInt(timestamp));
+    return date.toLocaleString();
   };
+
+  const filteredOrders =
+    filterStatus === 'All'
+      ? orders
+      : orders.filter(
+          ([, order]: any) => order.status === filterStatus
+        );
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/userProductList')}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Order Status</Text>
-          <View style={{ width: 24 }} />
-        </View>
+        <Text style={styles.title}>Order History</Text>
 
-        <View style={styles.statusBox}>
-          <Text style={styles.label}>Status:</Text>
-          <Text style={styles.value}>{isConfirmed ? 'Received' : 'In Transit'}</Text>
-        </View>
+        <Picker
+          selectedValue={filterStatus}
+          onValueChange={(value) => setFilterStatus(value)}
+          style={styles.picker}
+        >
+          <Picker.Item label="All" value="All" />
+          <Picker.Item label="In Transit" value="In Transit" />
+          <Picker.Item label="Received" value="Received" />
+          <Picker.Item label="Cancelled" value="Cancelled" />
+        </Picker>
 
-        {!isConfirmed && (
-          <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-            <Text style={styles.confirmText}>Confirm Order Received</Text>
-          </TouchableOpacity>
+        {filteredOrders.length === 0 ? (
+          <Text style={styles.noOrdersText}>No orders found.</Text>
+        ) : (
+          filteredOrders
+            .reverse()
+            .map(([orderId, order]: any) => {
+              const total = order.items?.reduce(
+                (sum: number, item: any) =>
+                  sum + item.quantity * item.price,
+                0
+              );
+              const isCancelled = order.status === 'Cancelled';
+
+              return (
+                <View
+                  key={orderId}
+                  style={[
+                    styles.orderBox,
+                    isCancelled && {
+                      borderColor: '#d9534f',
+                      borderWidth: 1,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.orderDate,
+                      isCancelled && { color: '#d9534f' },
+                    ]}
+                  >
+                    {formatDate(order.date || orderId)}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.statusText,
+                      isCancelled && { color: '#d9534f' },
+                    ]}
+                  >
+                    Status: {order.status}
+                  </Text>
+
+                  {order.items?.map((item: any, index: number) => (
+                    <Text
+                      key={index}
+                      style={[
+                        styles.itemText,
+                        isCancelled && { color: '#888' },
+                      ]}
+                    >
+                      • {item.name} x{item.quantity} - ₱{item.price}
+                    </Text>
+                  ))}
+
+                  <Text
+                    style={[
+                      styles.totalText,
+                      isCancelled && { color: '#d9534f' },
+                    ]}
+                  >
+                    Total: ₱{total}
+                  </Text>
+                </View>
+              );
+            })
         )}
       </ScrollView>
       <Navbar />
@@ -71,54 +161,52 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F1E5',
   },
   scrollContainer: {
-    paddingBottom: 40,
+    padding: 20,
+    paddingBottom: 60,
   },
-  header: {
-    flexDirection: 'row',
-    backgroundColor: '#4B3130',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 15,
-    width: '100%',
-  },
-  headerTitle: {
-    fontSize: 18,
+  title: {
+    fontSize: 22,
     fontWeight: '600',
-    color: '#fff',
+    color: '#4B3130',
+    marginBottom: 10,
   },
-  statusBox: {
+  picker: {
+    marginBottom: 20,
+    backgroundColor: '#fff',
+  },
+  noOrdersText: {
+    fontSize: 16,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 40,
+  },
+  orderBox: {
     backgroundColor: '#fff',
     borderRadius: 10,
-    padding: 20,
-    elevation: 2,
-    margin: 20,
-    marginTop: 30,
-  },
-  label: {
-    fontFamily: 'Poppins_500Medium',
-    color: '#4B3130',
-    fontSize: 16,
-  },
-  value: {
-    fontFamily: 'Poppins_400Regular',
-    color: '#ACBA96',
-    fontSize: 16,
-    marginTop: 5,
-  },
-  confirmButton: {
-    backgroundColor: '#4B3130',
     padding: 15,
-    borderRadius: 10,
-    marginHorizontal: 20,
-    marginTop: 10,
+    marginBottom: 15,
+    elevation: 2,
   },
-  confirmText: {
-    color: '#fff',
-    fontFamily: 'Poppins_600SemiBold',
-    textAlign: 'center',
+  orderDate: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#4B3130',
+    marginBottom: 5,
+  },
+  statusText: {
+    fontSize: 14,
+    color: '#888',
+    marginBottom: 10,
+  },
+  itemText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  totalText: {
+    marginTop: 10,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#4B3130',
   },
 });
 

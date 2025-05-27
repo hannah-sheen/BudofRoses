@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { database } from './firebaseConfig';
 import { ref, get, child } from 'firebase/database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
@@ -65,11 +66,13 @@ const LoginScreen = () => {
         );
 
         if (matchedUser) {
+          // Save username to AsyncStorage
+          await AsyncStorage.setItem('username', matchedUser.username);
+
           setLoading(false);
           setUsername('');
           setPassword('');
-          // alert('Welcome User!')
-          router.push('/userProductList'); 
+          router.push('/userProductList');
         } else {
           setLoading(false);
           Alert.alert('Login Failed', 'Invalid username or password.');
@@ -89,10 +92,6 @@ const LoginScreen = () => {
     return null;
   }
 
-  if (!fontsLoaded) {
-    return null;
-  }
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -101,7 +100,8 @@ const LoginScreen = () => {
       <Text style={styles.title}>Welcome Back</Text>
       <Text style={styles.subtitle}>Please sign in to your account</Text>
 
-      <TextInput style={styles.input}
+      <TextInput
+        style={styles.input}
         placeholder="Username"
         placeholderTextColor="#aaa"
         value={username}
@@ -117,9 +117,7 @@ const LoginScreen = () => {
           value={password}
           onChangeText={setPassword}
         />
-        <TouchableOpacity
-          onPress={() => setSecureTextEntry(!secureTextEntry)}
-        >
+        <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
           <Ionicons
             name={secureTextEntry ? 'eye-off' : 'eye'}
             size={24}
