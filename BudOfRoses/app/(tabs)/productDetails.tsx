@@ -13,7 +13,6 @@ type Product = {
   price: number;
   category: string;
   description?: string;
-  sizes?: string[];
   stocks: number;
   sales: number;
 };
@@ -61,7 +60,6 @@ const ProductDetails = () => {
     });
   };
 
-
   const handleDelete = () => {
     Alert.alert(
       'Confirm Delete',
@@ -77,14 +75,11 @@ const ProductDetails = () => {
                 return;
               }
 
-              // Create reference to the product in Firebase
               const productRef = ref(database, `productlist/${productId}`);
-              
-              // Delete the product
               await remove(productRef);
-              
+
               Alert.alert('Success', 'Product has been deleted successfully');
-              router.replace('/productList'); 
+              router.push('/productList'); 
             } catch (error) {
               console.error('Error deleting product:', error);
               Alert.alert('Error', 'Failed to delete product');
@@ -119,7 +114,7 @@ const ProductDetails = () => {
     );
   }
 
-   return (
+  return (
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.push('/productList')}>
@@ -155,13 +150,6 @@ const ProductDetails = () => {
               <Text style={styles.detail}>Category: {product.category}</Text>
             </View>
 
-            {product.sizes && product.sizes.length > 0 && (
-              <View style={styles.detailRow}>
-                <Ionicons name="options" size={18} color="#4B3130" />
-                <Text style={styles.detail}>Sizes: {product.sizes.join(', ')}</Text>
-              </View>
-            )}
-
             <View style={styles.detailRow}>
               <Ionicons name="cube" size={18} color="#4B3130" />
               <Text style={styles.detail}>Stocks: {product.stocks}</Text>
@@ -173,7 +161,6 @@ const ProductDetails = () => {
             </View>
           </View>
 
-          {/* Description Section (moved to bottom) */}
           {product.description && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Description</Text>
@@ -184,7 +171,6 @@ const ProductDetails = () => {
           )}
         </View>
 
-        {/* Action Buttons (keep the same) */}
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
             <Ionicons name="create-outline" size={18} color="#4B3130" />
@@ -230,7 +216,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     alignItems: 'center',
   },
- image: {
+  image: {
     width: '90%',
     height: 300,
     borderRadius: 12,
@@ -321,7 +307,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
   },
-   section: {
+  section: {
     width: '100%',
     marginBottom: 20,
     backgroundColor: '#FFFFFF',

@@ -3,12 +3,11 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image 
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
-import Checkbox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
-import {database} from './firebaseConfig'
-import { ref, push} from 'firebase/database';
+import { database } from './firebaseConfig';
+import { ref, push } from 'firebase/database';
 
-const AddProductForm = ({}) => {
+const AddProductForm = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [productName, setProductName] = useState('');
@@ -17,11 +16,6 @@ const AddProductForm = ({}) => {
   const [quantity, setQuantity] = useState('');
   const [category, setCategory] = useState('Roses');
   const [image, setImage] = useState<string | null>(null);
-  const [sizes, setSizes] = useState({
-    small: false,
-    medium: false,
-    large: false
-  });
 
   const categories = [
     'Roses',
@@ -36,7 +30,6 @@ const AddProductForm = ({}) => {
     'Dried Flowers'
   ];
 
-
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -50,24 +43,16 @@ const AddProductForm = ({}) => {
     }
   };
 
-  const handleSizeChange = (size: keyof typeof sizes) => {
-    setSizes(prev => ({
-      ...prev,
-      [size]: !prev[size]
-    }));
-  };
-
- const handleSubmit = async () => {
+  const handleSubmit = async () => {
     if (
       !productName.trim() ||
       !description.trim() ||
       !price ||
       !quantity ||
       !category ||
-      !image ||
-      Object.values(sizes).every((val) => !val)
+      !image
     ) {
-      alert('Please fill in all fields and select at least one size.');
+      alert('Please fill in all fields.');
       return;
     }
 
@@ -77,18 +62,15 @@ const AddProductForm = ({}) => {
       price: parseFloat(price),
       stocks: parseInt(quantity),
       category,
-      sizes: Object.keys(sizes).filter((size) => sizes[size as keyof typeof sizes]),
       image,
       createdAt: new Date().toISOString(),
       sales: 0,
     };
 
     try {
-      setLoading(true); 
-
+      setLoading(true);
       const productListRef = ref(database, 'productlist');
       await push(productListRef, productData);
-
       setLoading(false);
       alert('Product added successfully!');
       router.push('/productList');
@@ -99,23 +81,18 @@ const AddProductForm = ({}) => {
     }
   };
 
-
   if (loading) {
-  return (
-    <View style={styles.loadingContainer}>
-      <Ionicons name="refresh-circle" size={60} color="#4B3130" />
-      <Text style={[styles.loadingText, { fontFamily: 'Poppins_500Medium' }]}>Adding product...</Text>
-    </View>
-  );
-}
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="refresh-circle" size={60} color="#4B3130" />
+        <Text style={[styles.loadingText, { fontFamily: 'Poppins_500Medium' }]}>Adding product...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Back Button */}
-      <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={() => router.push('/productList')}
-      >
+      <TouchableOpacity style={styles.backButton} onPress={() => router.push('/productList')}>
         <Ionicons name="arrow-back" size={24} color="#4B3130" />
       </TouchableOpacity>
 
@@ -164,7 +141,7 @@ const AddProductForm = ({}) => {
       />
 
       {/* Quantity */}
-      <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Available Stocks</Text>
+      <Text style={styles.label}>Available Stocks</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter available quantity"
@@ -173,7 +150,7 @@ const AddProductForm = ({}) => {
         keyboardType="numeric"
       />
 
-      {/* Category Dropdown */}
+      {/* Category */}
       <Text style={styles.label}>Category</Text>
       <View style={styles.pickerContainer}>
         <Picker
@@ -187,23 +164,6 @@ const AddProductForm = ({}) => {
         </Picker>
       </View>
 
-      {/* Size Options */}
-      <Text style={styles.label}>Available Sizes</Text>
-      <View style={styles.checkboxContainer}>
-        {Object.keys(sizes).map((size) => (
-          <View key={size} style={styles.checkboxWrapper}>
-             <Checkbox
-              value={sizes[size as keyof typeof sizes]}
-              onValueChange={() => handleSizeChange(size as keyof typeof sizes)}
-              color={sizes[size as keyof typeof sizes] ? '#4B3130' : undefined}
-            />
-            <Text style={styles.checkboxLabel}>
-              {size.charAt(0).toUpperCase() + size.slice(1)}
-            </Text>
-          </View>
-        ))}
-      </View>
-
       {/* Submit Button */}
       <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
         <Text style={styles.submitButtonText}>Add Product</Text>
@@ -213,7 +173,7 @@ const AddProductForm = ({}) => {
 };
 
 const styles = StyleSheet.create({
-   loadingContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -222,13 +182,13 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 20,
-    paddingTop: 80,  // Increased from default to push content down
+    paddingTop: 80,
     paddingBottom: 40,
     backgroundColor: '#F0DCD3',
   },
   backButton: {
     position: 'absolute',
-    top: 40,  // Lowered from 60 to 40
+    top: 40,
     left: 10,
     zIndex: 1,
     padding: 8,
@@ -294,21 +254,6 @@ const styles = StyleSheet.create({
   picker: {
     width: '100%',
   },
-  checkboxContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 20,
-  },
-  checkboxWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '33%',
-    marginBottom: 10,
-  },
-  checkboxLabel: {
-    marginLeft: 8,
-    color: '#555',
-  },
   submitButton: {
     backgroundColor: '#DBA6B6',
     padding: 15,
@@ -322,10 +267,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   loadingText: {
-  marginTop: 10,
-  fontSize: 18,
-  color: '#4B3130',
-},
+    marginTop: 10,
+    fontSize: 18,
+    color: '#4B3130',
+  },
 });
 
 export default AddProductForm;

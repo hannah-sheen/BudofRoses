@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image,
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
-import Checkbox from 'expo-checkbox';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { database } from './firebaseConfig';
 import { ref, onValue, update } from 'firebase/database';
@@ -13,7 +12,7 @@ const EditProductForm = () => {
   const { productId } = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   // Form state
   const [productName, setProductName] = useState('');
   const [description, setDescription] = useState('');
@@ -21,11 +20,6 @@ const EditProductForm = () => {
   const [quantity, setQuantity] = useState('');
   const [category, setCategory] = useState('Roses');
   const [image, setImage] = useState<string | null>(null);
-  const [sizes, setSizes] = useState({
-    small: false,
-    medium: false,
-    large: false
-  });
 
   const categories = [
     'Roses',
@@ -57,14 +51,6 @@ const EditProductForm = () => {
         setQuantity(data.stocks.toString());
         setCategory(data.category || 'Roses');
         setImage(data.image || null);
-        
-        // Set sizes checkboxes
-        const sizeState = {
-          small: data.sizes?.includes('small') || false,
-          medium: data.sizes?.includes('medium') || false,
-          large: data.sizes?.includes('large') || false
-        };
-        setSizes(sizeState);
       }
       setLoading(false);
     });
@@ -85,13 +71,6 @@ const EditProductForm = () => {
     }
   };
 
-  const handleSizeChange = (size: keyof typeof sizes) => {
-    setSizes(prev => ({
-      ...prev,
-      [size]: !prev[size]
-    }));
-  };
-
   const handleSubmit = async () => {
     if (
       !productName.trim() ||
@@ -104,19 +83,12 @@ const EditProductForm = () => {
       return;
     }
 
-    const selectedSizes = Object.keys(sizes).filter(size => sizes[size as keyof typeof sizes]);
-    if (selectedSizes.length === 0) {
-      alert('Please select at least one size.');
-      return;
-    }
-
     const productData = {
       productName,
       description,
       price: parseFloat(price),
       stocks: parseInt(quantity),
       category,
-      sizes: selectedSizes,
       image,
     };
 
@@ -145,7 +117,6 @@ const EditProductForm = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Back Button */}
       <TouchableOpacity 
         style={styles.backButton} 
         onPress={() => router.push('/productDetails')}
@@ -155,7 +126,6 @@ const EditProductForm = () => {
 
       <Text style={[styles.header, { fontFamily: 'Poppins_600SemiBold' }]}>Edit Product</Text>
 
-      {/* Product Image */}
       <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
         {image ? (
           <Image source={{ uri: image }} style={styles.imagePreview} />
@@ -167,7 +137,6 @@ const EditProductForm = () => {
         )}
       </TouchableOpacity>
 
-      {/* Product Name */}
       <Text style={styles.label}>Product Name</Text>
       <TextInput
         style={styles.input}
@@ -176,7 +145,6 @@ const EditProductForm = () => {
         onChangeText={setProductName}
       />
 
-      {/* Description */}
       <Text style={styles.label}>Description</Text>
       <TextInput
         style={[styles.input, styles.multilineInput]}
@@ -187,7 +155,6 @@ const EditProductForm = () => {
         numberOfLines={4}
       />
 
-      {/* Price */}
       <Text style={styles.label}>Price (₱)</Text>
       <TextInput
         style={styles.input}
@@ -197,7 +164,6 @@ const EditProductForm = () => {
         keyboardType="numeric"
       />
 
-      {/* Quantity */}
       <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Available Stocks</Text>
       <TextInput
         style={styles.input}
@@ -207,7 +173,6 @@ const EditProductForm = () => {
         keyboardType="numeric"
       />
 
-      {/* Category Dropdown */}
       <Text style={styles.label}>Category</Text>
       <View style={styles.pickerContainer}>
         <Picker
@@ -221,24 +186,6 @@ const EditProductForm = () => {
         </Picker>
       </View>
 
-      {/* Size Options */}
-      <Text style={styles.label}>Available Sizes</Text>
-      <View style={styles.checkboxContainer}>
-        {Object.keys(sizes).map((size) => (
-          <View key={size} style={styles.checkboxWrapper}>
-            <Checkbox
-              value={sizes[size as keyof typeof sizes]}
-              onValueChange={() => handleSizeChange(size as keyof typeof sizes)}
-              color={sizes[size as keyof typeof sizes] ? '#4B3130' : undefined}
-            />
-            <Text style={styles.checkboxLabel}>
-              {size.charAt(0).toUpperCase() + size.slice(1)}
-            </Text>
-          </View>
-        ))}
-      </View>
-
-      {/* Submit Button */}
       <TouchableOpacity 
         style={styles.submitButton} 
         onPress={handleSubmit}
@@ -255,7 +202,7 @@ const EditProductForm = () => {
 };
 
 const styles = StyleSheet.create({
-   loadingContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -264,13 +211,13 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 20,
-    paddingTop: 80,  // Increased from default to push content down
+    paddingTop: 80,
     paddingBottom: 40,
     backgroundColor: '#F0DCD3',
   },
   backButton: {
     position: 'absolute',
-    top: 40,  // Lowered from 60 to 40
+    top: 40,
     left: 10,
     zIndex: 1,
     padding: 8,
@@ -335,21 +282,6 @@ const styles = StyleSheet.create({
   },
   picker: {
     width: '100%',
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 20,
-  },
-  checkboxWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '33%',
-    marginBottom: 10,
-  },
-  checkboxLabel: {
-    marginLeft: 8,
-    color: '#555',
   },
   submitButton: {
     backgroundColor: '#DBA6B6',
