@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const OrderStatus = () => {
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const router = useRouter();
 
   const handleConfirm = () => {
     Alert.alert('Order Received', 'Thank you for confirming your order.');
@@ -11,7 +14,15 @@ const OrderStatus = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Order Status</Text>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/userProductList')}>
+          <Ionicons name="arrow-back" size={24} color="#4B3130" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Order Status</Text>
+        <View style={{ width: 24 }} /> {/* spacer for alignment */}
+      </View>
+
       <View style={styles.statusBox}>
         <Text style={styles.label}>Status:</Text>
         <Text style={styles.value}>{isConfirmed ? 'Received' : 'In Transit'}</Text>
@@ -30,14 +41,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#D9D3C3',
     padding: 20,
+    marginTop: -500,
     justifyContent: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 30,
+    justifyContent: 'space-between',
   },
   title: {
     fontSize: 24,
     fontFamily: 'Poppins_600SemiBold',
     color: '#4B3130',
-    marginBottom: 30,
     textAlign: 'center',
+    flex: 1,
   },
   statusBox: {
     backgroundColor: '#fff',

@@ -1,7 +1,8 @@
-// ProductsListPage.tsx
+// userProductList.tsx
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  Image, TextInput, SafeAreaView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -19,10 +20,18 @@ type Product = {
   rating: number;
 };
 
+const routeMap = {
+  userProductList: '/(tabs)/userProductList',
+  addToCart: '/(tabs)/addToCart',
+  orderStatus: '/(tabs)/orderStatus',
+  profile: '/(tabs)/profile',
+} as const;
+
 const UserProductsListPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
   const { cart } = useCart();
+  const cartItemCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
 
   const [products] = useState<Product[]>([
     {
@@ -82,6 +91,8 @@ const UserProductsListPage = () => {
     Poppins_600SemiBold,
   });
 
+  if (!fontsLoaded) return null;
+
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -94,6 +105,10 @@ const UserProductsListPage = () => {
     });
   };
 
+  const navigateTo = (route: keyof typeof routeMap) => {
+    router.push(routeMap[route]);
+  };
+
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity style={styles.gridItem} onPress={() => handlePressProduct(item)}>
       <Image source={{ uri: item.image }} style={styles.gridImage} />
@@ -102,11 +117,11 @@ const UserProductsListPage = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Bud of Roses</Text>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/addToCart')}>
+        <TouchableOpacity onPress={() => navigateTo('addToCart')}>
           <Ionicons name="cart" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -122,7 +137,7 @@ const UserProductsListPage = () => {
         />
       </View>
 
-      {/* Grid */}
+      {/* Product Grid */}
       <FlatList
         data={filteredProducts}
         renderItem={renderProductItem}
@@ -130,7 +145,30 @@ const UserProductsListPage = () => {
         numColumns={2}
         contentContainerStyle={styles.gridList}
       />
-    </View>
+
+      {/* Bottom Navigation */}
+      <View style={styles.navbar}>
+        <TouchableOpacity onPress={() => navigateTo('userProductList')}>
+          <Ionicons name="home-outline" size={24} color="#4B3130" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigateTo('addToCart')}>
+          <View>
+            <Ionicons name="cart-outline" size={24} color="#4B3130" />
+            {cartItemCount > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigateTo('orderStatus')}>
+          <Ionicons name="clipboard-outline" size={24} color="#4B3130" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigateTo('profile')}>
+          <Ionicons name="person-outline" size={24} color="#4B3130" />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 };
 
@@ -153,7 +191,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_400Regular', marginLeft: 10,
   },
   gridList: {
-    paddingHorizontal: 10, paddingBottom: 30,
+    paddingHorizontal: 10, paddingBottom: 80,
   },
   gridItem: {
     flex: 1, backgroundColor: '#fff', margin: 8, borderRadius: 10,
@@ -165,6 +203,33 @@ const styles = StyleSheet.create({
   gridText: {
     marginTop: 8, fontSize: 14, fontFamily: 'Poppins_400Regular', color: '#4B3130',
     textAlign: 'center',
+  },
+  navbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    marginBottom: 45,
+    borderTopWidth: 1,
+    borderColor: '#ccc',
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartBadgeText: {
+    color: 'white',
+    fontSize: 10,
   },
 });
 
