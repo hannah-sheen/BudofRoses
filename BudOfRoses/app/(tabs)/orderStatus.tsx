@@ -5,6 +5,8 @@ import { getDatabase, ref, set, get } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import Navbar from './navBar';
+
 
 const OrderStatus = () => {
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -58,6 +60,7 @@ const OrderStatus = () => {
           </TouchableOpacity>
         )}
       </ScrollView>
+      <Navbar />
     </View>
   );
 };

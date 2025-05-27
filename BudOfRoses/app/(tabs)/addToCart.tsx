@@ -11,6 +11,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Navbar from './navBar';
+
 
 // Types
 type Product = {
@@ -143,7 +145,9 @@ export const CartScreen: React.FC = () => {
             }
           />
         )}
+        
       </ScrollView>
+      <Navbar/>
     </View>
   );
 };
