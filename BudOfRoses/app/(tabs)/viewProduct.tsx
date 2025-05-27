@@ -1,42 +1,91 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from './addToCart';
+import { database } from './firebaseConfig';
+import { ref, onValue } from 'firebase/database';
+
+type Product = {
+  id: string;
+  productName: string;
+  image: string;
+  price: number;
+  category: string;
+  description?: string;
+  stocks: number;
+};
 
 const ViewProduct = () => {
-  const { product } = useLocalSearchParams();
-  const parsed = product ? JSON.parse(product as string) : null;
-  const { dispatch } = useCart();
+  const { productId } = useLocalSearchParams();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const { dispatch } = useCart();
   const router = useRouter();
 
-  // Reset quantity to 1 when a new product is viewed
   useEffect(() => {
-    setQuantity(1);
-  }, [parsed?.id]);
+    if (!productId) {
+      setLoading(false);
+      return;
+    }
 
-  const addToCart = () => {
-    dispatch({
-      type: 'ADD_TO_CART',
-      product: parsed,
-      quantity,
+    const productRef = ref(database, `productlist/${productId}`);
+    const unsubscribe = onValue(productRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setProduct({
+          id: productId as string,
+          ...data
+        });
+      } else {
+        setProduct(null);
+      }
+      setLoading(false);
     });
 
-    Alert.alert(
-      'Success',
-      'Item Added to cart!',
-      [
-        {
-          text: 'OK',
-          onPress: () => router.replace('/(tabs)/addToCart'),
-        },
-      ],
-      { cancelable: false }
-    );
+    return () => unsubscribe();
+  }, [productId]);
+
+  const addToCart = () => {
+    // if (!product) return;
+
+    // dispatch({
+    //   type: 'ADD_TO_CART',
+    //   product: {
+    //     id: product.id,
+    //     name: product.productName,
+    //     image: product.image,
+    //     price: product.price,
+    //     category: product.category,
+    //     stock: product.stocks
+    //   },
+    //   quantity,
+    // });
+
+    // Alert.alert(
+    //   'Success',
+    //   'Item Added to cart!',
+    //   [
+    //     {
+    //       text: 'OK',
+    //       onPress: () => router.replace('/(tabs)/addToCart'),
+    //     },
+    //   ],
+    //   { cancelable: false }
+    // );
+    alert('Add to cart');
   };
 
-  if (!parsed) {
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4B3130" />
+      </View>
+    );
+  }
+
+  if (!product) {
     return (
       <View style={styles.container}>
         <Text>Product not found</Text>
@@ -46,79 +95,144 @@ const ViewProduct = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace('/(tabs)/userProductList')}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.push('/userProductList')}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>View Product</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <Image
+          source={{ uri: product.image || 'https://via.placeholder.com/150' }}
+          style={styles.image}
+          defaultSource={{ uri: 'https://via.placeholder.com/150' }}
+        />
+
+        <Text style={styles.name}>{product.productName}</Text>
+        <Text style={styles.price}>₱{product.price.toFixed(2)}</Text>
+
+        {product.description && (
+          <Text style={styles.description}>{product.description}</Text>
+        )}
+
+        <Text style={styles.detail}>Category: {product.category}</Text>
+        <Text style={styles.detail}>Stocks Available: {product.stocks}</Text>
+
+        {/* Quantity Adjuster */}
+        <View style={styles.quantityRow}>
+          <TouchableOpacity onPress={() => setQuantity(Math.max(1, quantity - 1))}>
+            <Ionicons name="remove-circle" size={30} color="#4B3130" />
+          </TouchableOpacity>
+          <Text style={styles.quantity}>{quantity}</Text>
+          <TouchableOpacity onPress={() => setQuantity(quantity + 1)}>
+            <Ionicons name="add-circle" size={30} color="#4B3130" />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={addToCart}
+          disabled={product.stocks <= 0}
+        >
+          <Text style={styles.addButtonText}>
+            {product.stocks > 0 ? 'Add to Cart' : 'Out of Stock'}
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Product Details</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <Image source={{ uri: parsed.image }} style={styles.image} />
-
-      <Text style={styles.name}>{parsed.name}</Text>
-      <Text style={styles.price}>
-        {parsed.price !== undefined && parsed.price !== null
-          ? `$${parsed.price.toFixed(2)}`
-          : 'Price not available'}
-      </Text>
-      <Text style={styles.detail}>Category: {parsed.category}</Text>
-      <Text style={styles.detail}>In Stock: {parsed.stock}</Text>
-      <Text style={styles.detail}>Sales: {parsed.sales}</Text>
-
-      {/* Rating */}
-      <View style={styles.ratingRow}>
-        <Text style={styles.detail}>Rating: {parsed.rating}</Text>
-        <Ionicons name="star" size={16} color="#FFD700" style={{ marginLeft: 4 }} />
-      </View>
-
-      {/* Quantity Adjuster */}
-      <View style={styles.quantityRow}>
-        <TouchableOpacity onPress={() => setQuantity(Math.max(1, quantity - 1))}>
-          <Ionicons name="remove-circle" size={30} color="#4B3130" />
-        </TouchableOpacity>
-        <Text style={styles.quantity}>{quantity}</Text>
-        <TouchableOpacity onPress={() => setQuantity(quantity + 1)}>
-          <Ionicons name="add-circle" size={30} color="#4B3130" />
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity style={styles.addButton} onPress={addToCart}>
-        <Text style={styles.addButtonText}>Add to Cart</Text>
-      </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 20, alignItems: 'center' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F7F1E5',
+  },
+  scrollContainer: {
+    paddingBottom: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F7F1E5',
+  },
   header: {
     flexDirection: 'row',
     backgroundColor: '#4B3130',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 20,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 50,
     paddingBottom: 15,
-    width: '115%',
+    width: '100%',
   },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#fff' },
-  image: { width: 200, height: 200, borderRadius: 10, marginVertical: 15 },
-  name: { fontSize: 22, fontWeight: 'bold', color: '#4B3130', textAlign: 'center' },
-  price: { fontSize: 20, color: '#ACBA96', marginBottom: 10 },
-  detail: { fontSize: 16, color: '#4B3130', marginVertical: 2 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 2 },
-  quantityRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
-  quantity: { marginHorizontal: 15, fontSize: 18 },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  image: {
+    width: '90%',
+    height: 300,
+    borderRadius: 10,
+    marginVertical: 20,
+    alignSelf: 'center',
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4B3130',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  price: {
+    fontSize: 22,
+    color: '#DBA6B6',
+    marginBottom: 15,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  detail: {
+    fontSize: 16,
+    color: '#4B3130',
+    marginVertical: 5,
+    paddingHorizontal: 20,
+  },
+  description: {
+    fontSize: 15,
+    color: '#4B3130',
+    marginVertical: 10,
+    paddingHorizontal: 20,
+    lineHeight: 22,
+  },
+  quantityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    justifyContent: 'center',
+  },
+  quantity: {
+    marginHorizontal: 15,
+    fontSize: 18,
+    color: '#4B3130',
+  },
   addButton: {
-    backgroundColor: '#ACBA96',
-    paddingVertical: 10,
-    paddingHorizontal: 25,
+    backgroundColor: '#4B3130',
+    paddingVertical: 14,
     borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 10,
   },
-  addButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
 
 export default ViewProduct;

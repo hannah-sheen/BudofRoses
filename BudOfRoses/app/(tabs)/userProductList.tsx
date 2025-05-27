@@ -1,118 +1,87 @@
-// userProductList.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Image, TextInput, SafeAreaView
+  Image, TextInput, SafeAreaView, ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFonts, Poppins_400Regular, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
 import { useCart } from './addToCart';
+import Navbar from './navBar';
+import { database } from './firebaseConfig';
+import { ref, onValue } from 'firebase/database';
 
 type Product = {
   id: string;
-  name: string;
+  productName: string;
   image: string;
   price: number;
   category: string;
   sales: number;
-  stock: number;
-  rating: number;
+  stocks: number;
 };
-
-const routeMap = {
-  userProductList: '/(tabs)/userProductList',
-  addToCart: '/(tabs)/addToCart',
-  orderStatus: '/(tabs)/orderStatus',
-  profile: '/(tabs)/profile',
-} as const;
 
 const UserProductsListPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { cart } = useCart();
   const cartItemCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
-
-  const [products] = useState<Product[]>([
-    {
-      id: '1',
-      name: 'Red Roses Bouquet',
-      image: 'https://via.placeholder.com/150',
-      price: 29.99,
-      category: 'Roses',
-      sales: 124,
-      stock: 45,
-      rating: 4.8
-    },
-    {
-      id: '2',
-      name: 'Sunflower Arrangement',
-      image: 'https://via.placeholder.com/150',
-      price: 24.99,
-      category: 'Sunflowers',
-      sales: 89,
-      stock: 32,
-      rating: 4.6
-    },
-    {
-      id: '3',
-      name: 'Mixed Spring Flowers',
-      image: 'https://via.placeholder.com/150',
-      price: 34.99,
-      category: 'Mixed Bouquets',
-      sales: 156,
-      stock: 28,
-      rating: 4.9
-    },
-    {
-      id: '4',
-      name: 'White Orchids',
-      image: 'https://via.placeholder.com/150',
-      price: 39.99,
-      category: 'Orchids',
-      sales: 72,
-      stock: 15,
-      rating: 4.7
-    },
-    {
-      id: '5',
-      name: 'Tulips Collection',
-      image: 'https://via.placeholder.com/150',
-      price: 27.99,
-      category: 'Tulips',
-      sales: 103,
-      stock: 37,
-      rating: 4.5
-    },
-  ]);
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_600SemiBold,
   });
 
-  if (!fontsLoaded) return null;
+  useEffect(() => {
+    const productsRef = ref(database, 'productlist');
+    const unsubscribe = onValue(productsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const productsArray = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key]
+        }));
+        setProducts(productsArray);
+      } else {
+        setProducts([]);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (!fontsLoaded || loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4B3130" />
+      </View>
+    );
+  }
 
   const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handlePressProduct = (product: Product) => {
     router.push({
       pathname: '/viewProduct',
-      params: { product: JSON.stringify(product) },
+      params: { productId: product.id }, // Only pass the ID
     });
-  };
-
-  const navigateTo = (route: keyof typeof routeMap) => {
-    router.push(routeMap[route]);
   };
 
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity style={styles.gridItem} onPress={() => handlePressProduct(item)}>
-      <Image source={{ uri: item.image }} style={styles.gridImage} />
-      <Text style={styles.gridText}>{item.name}</Text>
+      <Image 
+        source={{ uri: item.image || 'https://via.placeholder.com/150' }} 
+        style={styles.gridImage} 
+        defaultSource={{ uri: 'https://via.placeholder.com/150' }}
+      />
+      <Text style={styles.gridText}>{item.productName}</Text>
+      <Text style={styles.priceText}>₱{item.price.toFixed(2)}</Text>
     </TouchableOpacity>
   );
 
@@ -121,9 +90,6 @@ const UserProductsListPage = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Bud of Roses</Text>
-        <TouchableOpacity onPress={() => navigateTo('addToCart')}>
-          <Ionicons name="cart" size={24} color="#fff" />
-        </TouchableOpacity>
       </View>
 
       {/* Search */}
@@ -138,98 +104,104 @@ const UserProductsListPage = () => {
       </View>
 
       {/* Product Grid */}
-      <FlatList
-        data={filteredProducts}
-        renderItem={renderProductItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        contentContainerStyle={styles.gridList}
-      />
-
-      {/* Bottom Navigation */}
-      <View style={styles.navbar}>
-        <TouchableOpacity onPress={() => navigateTo('userProductList')}>
-          <Ionicons name="home-outline" size={24} color="#4B3130" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigateTo('addToCart')}>
-          <View>
-            <Ionicons name="cart-outline" size={24} color="#4B3130" />
-            {cartItemCount > 0 && (
-              <View style={styles.cartBadge}>
-                <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigateTo('orderStatus')}>
-          <Ionicons name="clipboard-outline" size={24} color="#4B3130" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigateTo('profile')}>
-          <Ionicons name="person-outline" size={24} color="#4B3130" />
-        </TouchableOpacity>
-      </View>
+      {filteredProducts.length > 0 ? (
+        <FlatList
+          data={filteredProducts}
+          renderItem={renderProductItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={styles.gridList}
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No products found</Text>
+        </View>
+      )}
+      
+      <Navbar/>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#D9D3C3' },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#D9D3C3',
+  },
   header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', padding: 15, paddingTop: 50, backgroundColor: '#4B3130',
+    flexDirection: 'row', 
+    justifyContent: 'space-between',
+    alignItems: 'center', 
+    padding: 15, 
+    paddingTop: 50, 
+    backgroundColor: '#4B3130',
   },
   headerTitle: {
-    fontSize: 22, fontFamily: 'Poppins_600SemiBold', color: '#FFFFFF',
+    fontSize: 22, 
+    fontFamily: 'Poppins_600SemiBold', 
+    color: '#FFFFFF',
   },
   searchContainer: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF', margin: 15, borderRadius: 10,
-    paddingHorizontal: 15, elevation: 2,
+    flexDirection: 'row', 
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF', 
+    margin: 15, 
+    borderRadius: 10,
+    paddingHorizontal: 15, 
+    elevation: 2,
   },
   searchInput: {
-    flex: 1, height: 50, color: '#4B3130', fontSize: 16,
-    fontFamily: 'Poppins_400Regular', marginLeft: 10,
+    flex: 1, 
+    height: 50, 
+    color: '#4B3130', 
+    fontSize: 16,
+    fontFamily: 'Poppins_400Regular', 
+    marginLeft: 10,
   },
   gridList: {
-    paddingHorizontal: 10, paddingBottom: 80,
+    paddingHorizontal: 10, 
+    paddingBottom: 80,
   },
   gridItem: {
-    flex: 1, backgroundColor: '#fff', margin: 8, borderRadius: 10,
-    alignItems: 'center', padding: 10,
+    flex: 1, 
+    backgroundColor: '#fff', 
+    margin: 8, 
+    borderRadius: 10,
+    alignItems: 'center', 
+    padding: 10,
+    elevation: 2,
   },
   gridImage: {
-    width: 100, height: 100, borderRadius: 10,
+    width: 100, 
+    height: 100, 
+    borderRadius: 10,
+    resizeMode: 'cover',
   },
   gridText: {
-    marginTop: 8, fontSize: 14, fontFamily: 'Poppins_400Regular', color: '#4B3130',
+    marginTop: 8, 
+    fontSize: 14, 
+    fontFamily: 'Poppins_400Regular', 
+    color: '#4B3130',
     textAlign: 'center',
   },
-  navbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
-    marginBottom: 45,
-    borderTopWidth: 1,
-    borderColor: '#ccc',
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
+  priceText: {
+    fontSize: 16,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#DBA6B6',
+    marginTop: 4,
   },
-  cartBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -10,
-    backgroundColor: 'red',
-    borderRadius: 10,
-    width: 16,
-    height: 16,
+  emptyContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cartBadgeText: {
-    color: 'white',
-    fontSize: 10,
+  emptyText: {
+    fontSize: 18,
+    fontFamily: 'Poppins_400Regular',
+    color: '#4B3130',
   },
 });
 
