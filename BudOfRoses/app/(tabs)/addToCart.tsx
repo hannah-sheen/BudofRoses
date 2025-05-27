@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
@@ -101,46 +102,48 @@ export const CartScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        onPress={() => router.push('/(tabs)/userProductList')}
-        style={styles.backButton}
-      >
-        <Ionicons name="arrow-back" size={24} color="#fff" />
-      </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/userProductList')}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Cart</Text>
+          <View style={{ width: 24 }} />
+        </View>
 
-      <Text style={styles.cartTitle}>Cart</Text>
-
-      {cart.items.length === 0 ? (
-        <Text style={styles.emptyText}>Your cart is empty.</Text>
-      ) : (
-        <FlatList
-          data={cart.items}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.cartItem}>
-              <Text style={styles.itemText}>
-                {item.name} x {item.quantity}
-              </Text>
-              <Text style={styles.itemPrice}>
-                ${(item.price * item.quantity).toFixed(2)}
-              </Text>
-              <TouchableOpacity
-                onPress={() => dispatch({ type: 'REMOVE_FROM_CART', id: item.id })}
-              >
-                <Text style={styles.removeText}>Remove</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          ListFooterComponent={
-            <View style={styles.footerContainer}>
-              <Text style={styles.totalText}>Total: ${total.toFixed(2)}</Text>
-              <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
-                <Text style={styles.checkoutText}>Checkout</Text>
-              </TouchableOpacity>
-            </View>
-          }
-        />
-      )}
+        {cart.items.length === 0 ? (
+          <Text style={styles.emptyText}>Your cart is empty.</Text>
+        ) : (
+          <FlatList
+            data={cart.items}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.cartItem}>
+                <Text style={styles.itemText}>
+                  {item.name} x {item.quantity}
+                </Text>
+                <Text style={styles.itemPrice}>
+                  ₱{(item.price * item.quantity).toFixed(2)}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => dispatch({ type: 'REMOVE_FROM_CART', id: item.id })}
+                >
+                  <Text style={styles.removeText}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            ListFooterComponent={
+              <View style={styles.footerContainer}>
+                <Text style={styles.totalText}>Total: ₱{total.toFixed(2)}</Text>
+                <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
+                  <Text style={styles.checkoutText}>Checkout</Text>
+                </TouchableOpacity>
+              </View>
+            }
+          />
+        )}
+      </ScrollView>
     </View>
   );
 };
@@ -151,36 +154,38 @@ export default CartScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    paddingTop: 60,
+    backgroundColor: '#D9D3C3',
   },
-  backButton: {
-    marginBottom: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+  scrollContainer: {
+    paddingBottom: 40,
+  },
+  header: {
+    flexDirection: 'row',
     backgroundColor: '#4B3130',
-    alignSelf: 'flex-start',
-    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 15,
+    width: '100%',
   },
-  backButtonText: {
-    fontSize: 16,
-    color: '#fff',
+  headerTitle: {
+    fontSize: 18,
     fontWeight: '600',
-  },
-  cartTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    color: '#fff',
   },
   emptyText: {
     fontStyle: 'italic',
     color: '#888',
     fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
   },
   cartItem: {
     backgroundColor: '#f2f2f2',
     padding: 12,
     marginVertical: 6,
+    marginHorizontal: 20,
     borderRadius: 10,
   },
   itemText: {
@@ -199,6 +204,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#ccc',
+    marginHorizontal: 20,
   },
   totalText: {
     marginTop: 10,
@@ -208,13 +214,13 @@ const styles = StyleSheet.create({
   checkoutButton: {
     marginTop: 10,
     backgroundColor: '#4B3130',
-    paddingVertical: 10,
-    borderRadius: 6,
+    paddingVertical: 14,
+    borderRadius: 8,
     alignItems: 'center',
   },
   checkoutText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: 'white',
     fontSize: 16,
+    fontWeight: '600',
   },
 });
