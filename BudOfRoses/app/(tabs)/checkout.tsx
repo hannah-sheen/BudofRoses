@@ -1,138 +1,231 @@
-// import React, { useState } from 'react';
-// import {
-//   View,
-//   Text,
-//   TextInput,
-//   Button,
-//   StyleSheet,
-//   Alert,
-//   ScrollView,
-// } from 'react-native';
-// // import { useCart } from '../(tabs)/addToCart';
-// import { useNavigation } from '@react-navigation/native';
-// import { router } from 'expo-router';
+import React, { useState } from 'react';
+import { View, Text, TextInput, StyleSheet, Alert, ScrollView, SafeAreaView, Image, TouchableOpacity } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-// const Checkout = () => {
-// //   const { cart, dispatch } = useCart();
-//   const navigation = useNavigation();
+type CartItem = {
+  id: string;
+  productId: string;
+  productName: string;
+  price: number;
+  quantity: number;
+  totalAmount: number;
+  image?: string;
+};
 
-//   const [name, setName] = useState('');
-//   const [address, setAddress] = useState('');
-//   const [email, setEmail] = useState('');
+const SHIPPING_FEE = 80;
 
-// //   const totalPrice = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+const Checkout = () => {
+  const params = useLocalSearchParams();
+  const { username, cartItems: cartItemsString, total } = params;
+  
+  const handlePlaceOrder = () => {
+    if (cartItems.length === 0) {
+      Alert.alert('No Items Selected', 'Please select items to checkout.');
+      return;
+    }
 
-//   const handlePlaceOrder = () => {
-//     if (!name || !address || !email) {
-//       Alert.alert('Missing Information', 'Please fill out all fields.');
-//       return;
-//     }
+    // Here you would typically send the order to your backend
+    Alert.alert(
+      'Order Placed', 
+      `Your order has been placed successfully!\n\nTotal: ₱${grandTotal.toFixed(2)}`
+    );
 
-//     if (cart.items.length === 0) {
-//       Alert.alert('Cart is Empty', 'Please add items to your cart before placing an order.');
-//       return;
-//     }
+    router.push({
+      pathname: '/userProductList',
+      params: { username },
+    });
+  };
 
-//     Alert.alert('Order Placed', `Thank you, ${name}! Your order total is $${totalPrice.toFixed(2)}`);
-//     dispatch({ type: 'CLEAR_CART' });
+  // Parse the cart items from the URL params
+  const cartItems: CartItem[] = cartItemsString ? JSON.parse(cartItemsString as string) : [];
+  const subtotal = total ? parseFloat(total as string) : 0;
+  const grandTotal = subtotal + SHIPPING_FEE;
 
-//     setName('');
-//     setAddress('');
-//     setEmail('');
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Checkout</Text>
+          <View style={{ width: 24 }} />
+        </View>
 
-//     router.replace('/(tabs)/userProductList');
-//   };
+        {/* Order Summary */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Order Summary</Text>
+          {cartItems.length === 0 ? (
+            <Text style={styles.emptyText}>No items selected</Text>
+          ) : (
+            cartItems.map(item => (
+              <View key={item.id} style={styles.orderItem}>
+                <Image 
+                  source={{ uri: item.image || 'https://via.placeholder.com/150' }} 
+                  style={styles.orderItemImage}
+                  defaultSource={{ uri: 'https://via.placeholder.com/150' }}
+                />
+                <View style={styles.orderItemDetails}>
+                  <Text style={styles.orderItemName} numberOfLines={1}>{item.productName}</Text>
+                  <Text style={styles.orderItemPrice}>₱{item.price.toFixed(2)} × {item.quantity}</Text>
+                </View>
+                <Text style={styles.orderItemTotal}>₱{item.totalAmount.toFixed(2)}</Text>
+              </View>
+            ))
+          )}
+        </View>
 
-//   return (
-//     <ScrollView contentContainerStyle={styles.container}>
-//       <Text style={styles.heading}>Checkout</Text>
+        {/* Price Breakdown */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Price Details</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Subtotal</Text>
+            <Text style={styles.priceValue}>₱{subtotal.toFixed(2)}</Text>
+          </View>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Shipping Fee</Text>
+            <Text style={styles.priceValue}>₱{SHIPPING_FEE.toFixed(2)}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalValue}>₱{grandTotal.toFixed(2)}</Text>
+          </View>
+        </View>
 
-//       {cart.items.length === 0 ? (
-//         <Text style={styles.emptyCart}>Your cart is empty.</Text>
-//       ) : (
-//         cart.items.map(item => (
-//           <View key={item.id} style={styles.item}>
-//             <Text style={styles.itemText}>{item.name} x {item.quantity}</Text>
-//             <Text style={styles.itemText}>${(item.price * item.quantity).toFixed(2)}</Text>
-//           </View>
-//         ))
-//       )}
+        {/* Place Order Button */}
+        <TouchableOpacity 
+          style={styles.placeOrderButton}
+          onPress={handlePlaceOrder}
+          disabled={cartItems.length === 0}
+        >
+          <Text style={styles.placeOrderText}>Place Order - ₱{grandTotal.toFixed(2)}</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
 
-//       <Text style={styles.total}>Total: ${totalPrice.toFixed(2)}</Text>
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F7F1E5',
+  },
+  scrollContainer: {
+    paddingBottom: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#4B3130',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  section: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
+    margin: 16,
+    marginBottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4B3130',
+    marginBottom: 12,
+  },
+  orderItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  orderItemImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  orderItemDetails: {
+    flex: 1,
+  },
+  orderItemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4B3130',
+    marginBottom: 4,
+  },
+  orderItemPrice: {
+    fontSize: 12,
+    color: '#666',
+  },
+  orderItemTotal: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4B3130',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  priceLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  priceValue: {
+    fontSize: 14,
+    color: '#4B3130',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4B3130',
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#4B3130',
+  },
+  placeOrderButton: {
+    backgroundColor: '#4B3130',
+    borderRadius: 8,
+    padding: 16,
+    margin: 16,
+    alignItems: 'center',
+  },
+  placeOrderText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyText: {
+    color: '#888',
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
+});
 
-//       <Text style={styles.label}>Name</Text>
-//       <TextInput
-//         style={styles.input}
-//         placeholder="Enter your name"
-//         value={name}
-//         onChangeText={setName}
-//       />
-
-//       <Text style={styles.label}>Address</Text>
-//       <TextInput
-//         style={styles.input}
-//         placeholder="Enter your address"
-//         value={address}
-//         onChangeText={setAddress}
-//       />
-
-//       <Text style={styles.label}>Email</Text>
-//       <TextInput
-//         style={styles.input}
-//         placeholder="Enter your email"
-//         value={email}
-//         onChangeText={setEmail}
-//         keyboardType="email-address"
-//         autoCapitalize="none"
-//       />
-
-//       <Button title="Place Order" onPress={handlePlaceOrder} />
-//     </ScrollView>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     padding: 20,
-//     backgroundColor: '#fff',
-//   },
-//   heading: {
-//     fontSize: 26,
-//     fontWeight: 'bold',
-//     marginBottom: 20,
-//   },
-//   item: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     marginBottom: 10,
-//   },
-//   itemText: {
-//     fontSize: 16,
-//   },
-//   total: {
-//     fontSize: 20,
-//     fontWeight: 'bold',
-//     marginVertical: 20,
-//   },
-//   label: {
-//     fontSize: 14,
-//     marginTop: 10,
-//   },
-//   input: {
-//     borderColor: '#ccc',
-//     borderWidth: 1,
-//     paddingHorizontal: 10,
-//     paddingVertical: 8,
-//     marginTop: 4,
-//     borderRadius: 6,
-//     marginBottom: 10,
-//   },
-//   emptyCart: {
-//     fontSize: 16,
-//     color: '#888',
-//     marginBottom: 20,
-//     textAlign: 'center',
-//   },
-// });
-
-// export default Checkout;
+export default Checkout;

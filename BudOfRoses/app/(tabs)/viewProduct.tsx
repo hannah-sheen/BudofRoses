@@ -12,7 +12,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { database } from './firebaseConfig';
-import { ref, onValue, push, set } from 'firebase/database';
+import { ref, onValue, push, set, get } from 'firebase/database';
 
 type Product = {
   id: string;
@@ -60,25 +60,54 @@ const ViewProduct = () => {
   }, [productId]);
 
   const addToCart = async () => {
-  
     if (!product || !username) {
       Alert.alert('Error', 'Missing product or user info');
       return;
     }
+
     try {
       const cartRef = ref(database, `users/${username}/cart`);
-      const newCartItemRef = push(cartRef);
+      const snapshot = await get(cartRef); // Use get() instead of onValue
 
-      await set(newCartItemRef, {
-        productId: product.id,
-        quantity: quantity,
-        totalAmount: product.price * quantity,
-      });
+      const cartData = snapshot.val();
+      let existingItemKey = null;
 
-      Alert.alert('Success', 'Added to cart!');
+      if (cartData) {
+        // Find if the product already exists in the cart
+        existingItemKey = Object.keys(cartData).find(
+          key => cartData[key].productId === product.id
+        );
+      }
+
+      if (existingItemKey) {
+        const existingItem = cartData[existingItemKey];
+        const newQuantity = existingItem.quantity + quantity;
+        const newTotalAmount = product.price * newQuantity;
+        
+
+        await set(ref(database, `users/${username}/cart/${existingItemKey}`), {
+          ...existingItem,
+          quantity: newQuantity,
+          totalAmount: newTotalAmount,
+        });
+
+         Alert.alert('Success', 'Added to cart!');
+      } else {
+        const newCartItemRef = push(cartRef);
+        await set(newCartItemRef, {
+          productId: product.id,
+          productName: product.productName,
+          image: product.image,
+          price: product.price,
+          quantity: quantity,
+          totalAmount: product.price * quantity,
+        });
+
+        Alert.alert('Success', 'Added to cart!');
+      }
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      Alert.alert('Error', 'Failed to add item to cart');
+      console.error('Error updating cart:', error);
+      Alert.alert('Error', 'Failed to update cart');
     }
   };
 
@@ -102,7 +131,11 @@ const ViewProduct = () => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.push('/userProductList')}>
+          <TouchableOpacity onPress={() =>  
+              router.push({
+              pathname: '/userProductList',
+              params: { username: username },
+            })}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>View Product</Text>
