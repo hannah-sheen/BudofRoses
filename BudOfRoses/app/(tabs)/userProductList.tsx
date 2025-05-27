@@ -69,20 +69,25 @@ const UserProductsListPage = () => {
   const handlePressProduct = (product: Product) => {
     router.push({
       pathname: '/viewProduct',
-      params: { productId: product.id }, // Only pass the ID
+      params: { productId: product.id },
     });
   };
 
   const renderProductItem = ({ item }: { item: Product }) => (
-    <TouchableOpacity style={styles.gridItem} onPress={() => handlePressProduct(item)}>
-      <Image 
-        source={{ uri: item.image || 'https://via.placeholder.com/150' }} 
-        style={styles.gridImage} 
-        defaultSource={{ uri: 'https://via.placeholder.com/150' }}
-      />
-      <Text style={styles.gridText}>{item.productName}</Text>
-      <Text style={styles.priceText}>₱{item.price.toFixed(2)}</Text>
-    </TouchableOpacity>
+    <View style={styles.gridItemContainer}>
+      <TouchableOpacity 
+        style={styles.gridItem} 
+        onPress={() => handlePressProduct(item)}
+      >
+        <Image 
+          source={{ uri: item.image || 'https://via.placeholder.com/150' }} 
+          style={styles.gridImage} 
+          defaultSource={{ uri: 'https://via.placeholder.com/150' }}
+        />
+        <Text style={styles.gridText}>{item.productName}</Text>
+        <Text style={styles.priceText}>₱{item.price.toFixed(2)}</Text>
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -111,6 +116,7 @@ const UserProductsListPage = () => {
           keyExtractor={(item) => item.id}
           numColumns={2}
           contentContainerStyle={styles.gridList}
+          columnWrapperStyle={styles.columnWrapper}
         />
       ) : (
         <View style={styles.emptyContainer}>
@@ -165,10 +171,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, 
     paddingBottom: 80,
   },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  gridItemContainer: {
+    width: '48%',
+  },
   gridItem: {
-    flex: 1, 
     backgroundColor: '#fff', 
-    margin: 8, 
     borderRadius: 10,
     alignItems: 'center', 
     padding: 10,
