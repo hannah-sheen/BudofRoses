@@ -13,7 +13,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { database } from './firebaseConfig';
-import { ref, onValue, remove } from 'firebase/database';
+import { ref, onValue, remove, update } from 'firebase/database';
 import Checkbox from 'expo-checkbox';
 
 type CartItem = {
@@ -31,6 +31,7 @@ const CartScreen: React.FC = () => {
   const { username } = useLocalSearchParams<{ username: string }>();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectAll, setSelectAll] = useState(true);
 
   useEffect(() => {
     if (!username) {
@@ -48,17 +49,43 @@ const CartScreen: React.FC = () => {
           items.push({
             id: key,
             ...cartData[key],
-            selected: true // Default all items to selected
+            selected: true
           });
         });
       }
 
       setCartItems(items);
       setLoading(false);
+      setSelectAll(items.length > 0);
     });
 
     return () => unsubscribe();
   }, [username]);
+
+  const updateQuantity = (itemId: string, newQuantity: number) => {
+    if (newQuantity < 1) {
+      removeFromCart(itemId);
+      return;
+    }
+
+    if (!username) return;
+
+    // Find the item in our local state first
+    const itemToUpdate = cartItems.find(item => item.id === itemId);
+    if (!itemToUpdate) {
+      Alert.alert('Error', 'Item not found in cart');
+      return;
+    }
+
+    const itemPrice = itemToUpdate.price || 0; // Fallback to 0 if price is undefined
+    const newTotalAmount = newQuantity * itemPrice;
+
+    const itemRef = ref(database, `users/${username}/cart/${itemId}`);
+    update(itemRef, {
+      quantity: newQuantity,
+      totalAmount: newTotalAmount
+    }).catch(() => Alert.alert('Error', 'Failed to update quantity'));
+  };
 
   const removeFromCart = (itemId: string) => {
     Alert.alert(
@@ -88,6 +115,18 @@ const CartScreen: React.FC = () => {
       prevItems.map(item =>
         item.id === itemId ? { ...item, selected: !item.selected } : item
       )
+    );
+    setSelectAll(cartItems.every(item => item.id === itemId ? !item.selected : item.selected));
+  };
+
+  const toggleSelectAll = () => {
+    const newSelectAll = !selectAll;
+    setSelectAll(newSelectAll);
+    setCartItems(prevItems => 
+      prevItems.map(item => ({
+        ...item,
+        selected: newSelectAll
+      }))
     );
   };
 
@@ -152,6 +191,16 @@ const CartScreen: React.FC = () => {
         </View>
       ) : (
         <>
+          {/* Select All checkbox */}
+          <View style={styles.selectAllContainer}>
+            <Checkbox
+              value={selectAll}
+              onValueChange={toggleSelectAll}
+              style={styles.checkbox}
+            />
+            <Text style={styles.selectAllText}>Select All</Text>
+          </View>
+
           <FlatList
             data={cartItems}
             keyExtractor={item => item.id}
@@ -163,17 +212,33 @@ const CartScreen: React.FC = () => {
                   onValueChange={() => toggleItemSelection(item.id)}
                   style={styles.checkbox}
                 />
-                {/* Image is displayed here */}
                 <Image 
                   source={{ uri: item.image || 'https://via.placeholder.com/150' }} 
                   style={styles.itemImage}
                   defaultSource={{ uri: 'https://via.placeholder.com/150' }}
                 />
                 <View style={styles.itemDetails}>
-                  {/* Product name is displayed here */}
                   <Text style={styles.itemName} numberOfLines={1}>{item.productName}</Text>
-                  <Text style={styles.itemPrice}>₱{(item.price ?? 0).toFixed(2)} × {item.quantity}</Text>
-                  <Text style={styles.itemTotal}>₱{(item.totalAmount ?? 0).toFixed(2)}</Text>
+                  <View style={styles.priceRow}>
+                    <Text style={styles.originalPrice}>₱{item.price.toFixed(2)}</Text>
+                    <Text style={styles.quantityText}>× {item.quantity}</Text>
+                  </View>
+                  <View style={styles.quantityContainer}>
+                    <TouchableOpacity 
+                      style={styles.quantityButton} 
+                      onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                    >
+                      <Ionicons name="remove" size={16} color="#4B3130" />
+                    </TouchableOpacity>
+                    <Text style={styles.quantityText}>{item.quantity}</Text>
+                    <TouchableOpacity 
+                      style={styles.quantityButton} 
+                      onPress={() => updateQuantity(item.id, item.quantity + 1)}
+                    >
+                      <Ionicons name="add" size={16} color="#4B3130" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.itemTotal}>₱{item.totalAmount.toFixed(2)}</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.removeButton}
@@ -238,6 +303,18 @@ const styles = StyleSheet.create({
     color: '#888',
     marginTop: 16,
   },
+  selectAllContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    paddingBottom: 0,
+    backgroundColor: '#F7F1E5',
+  },
+  selectAllText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#4B3130',
+  },
   listContent: {
     padding: 16,
     paddingBottom: 100,
@@ -274,10 +351,25 @@ const styles = StyleSheet.create({
     color: '#4B3130',
     marginBottom: 4,
   },
-  itemPrice: {
-    fontSize: 14,
-    color: '#666',
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 4,
+  },
+  quantityButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F0E6D2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quantityText: {
+    marginHorizontal: 10,
+    fontSize: 14,
+    color: '#4B3130',
+    minWidth: 20,
+    textAlign: 'center',
   },
   itemTotal: {
     fontSize: 16,
@@ -322,6 +414,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  priceRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginBottom: 4,
+  },
+  originalPrice: {
+    fontSize: 14,
+    color: '#666',
+    marginRight: 8,
   },
 });
 
