@@ -1,10 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useCart } from './addToCart';
 import { database } from './firebaseConfig';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, push, set, get } from 'firebase/database';
 
 type Product = {
   id: string;
@@ -17,12 +25,16 @@ type Product = {
 };
 
 const ViewProduct = () => {
-  const { productId } = useLocalSearchParams();
+  const { productId, username } = useLocalSearchParams<{
+    productId: string;
+    username: string;
+  }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const { dispatch } = useCart();
   const router = useRouter();
+
+  console.log('username:', username)
 
   useEffect(() => {
     if (!productId) {
@@ -36,7 +48,7 @@ const ViewProduct = () => {
       if (data) {
         setProduct({
           id: productId as string,
-          ...data
+          ...data,
         });
       } else {
         setProduct(null);
@@ -47,34 +59,56 @@ const ViewProduct = () => {
     return () => unsubscribe();
   }, [productId]);
 
-  const addToCart = () => {
-    // if (!product) return;
+  const addToCart = async () => {
+    if (!product || !username) {
+      Alert.alert('Error', 'Missing product or user info');
+      return;
+    }
 
-    // dispatch({
-    //   type: 'ADD_TO_CART',
-    //   product: {
-    //     id: product.id,
-    //     name: product.productName,
-    //     image: product.image,
-    //     price: product.price,
-    //     category: product.category,
-    //     stock: product.stocks
-    //   },
-    //   quantity,
-    // });
+    try {
+      const cartRef = ref(database, `users/${username}/cart`);
+      const snapshot = await get(cartRef); // Use get() instead of onValue
 
-    // Alert.alert(
-    //   'Success',
-    //   'Item Added to cart!',
-    //   [
-    //     {
-    //       text: 'OK',
-    //       onPress: () => router.replace('/(tabs)/addToCart'),
-    //     },
-    //   ],
-    //   { cancelable: false }
-    // );
-    alert('Add to cart');
+      const cartData = snapshot.val();
+      let existingItemKey = null;
+
+      if (cartData) {
+        // Find if the product already exists in the cart
+        existingItemKey = Object.keys(cartData).find(
+          key => cartData[key].productId === product.id
+        );
+      }
+
+      if (existingItemKey) {
+        const existingItem = cartData[existingItemKey];
+        const newQuantity = existingItem.quantity + quantity;
+        const newTotalAmount = product.price * newQuantity;
+        
+
+        await set(ref(database, `users/${username}/cart/${existingItemKey}`), {
+          ...existingItem,
+          quantity: newQuantity,
+          totalAmount: newTotalAmount,
+        });
+
+         Alert.alert('Success', 'Added to cart!');
+      } else {
+        const newCartItemRef = push(cartRef);
+        await set(newCartItemRef, {
+          productId: product.id,
+          productName: product.productName,
+          image: product.image,
+          price: product.price,
+          quantity: quantity,
+          totalAmount: product.price * quantity,
+        });
+
+        Alert.alert('Success', 'Added to cart!');
+      }
+    } catch (error) {
+      console.error('Error updating cart:', error);
+      Alert.alert('Error', 'Failed to update cart');
+    }
   };
 
   if (loading) {
@@ -96,9 +130,12 @@ const ViewProduct = () => {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.push('/userProductList')}>
+          <TouchableOpacity onPress={() =>  
+              router.push({
+              pathname: '/userProductList',
+              params: { username: username },
+            })}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>View Product</Text>
@@ -121,7 +158,6 @@ const ViewProduct = () => {
         <Text style={styles.detail}>Category: {product.category}</Text>
         <Text style={styles.detail}>Stocks Available: {product.stocks}</Text>
 
-        {/* Quantity Adjuster */}
         <View style={styles.quantityRow}>
           <TouchableOpacity onPress={() => setQuantity(Math.max(1, quantity - 1))}>
             <Ionicons name="remove-circle" size={30} color="#4B3130" />
@@ -166,8 +202,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 15,
+    padding: 15,
     width: '100%',
   },
   headerTitle: {
