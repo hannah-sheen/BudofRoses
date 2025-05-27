@@ -16,6 +16,8 @@ type Product = {
   stocks: number;
 };
 
+const LOW_STOCK_THRESHOLD = 20;
+
 const ProductsListPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
@@ -66,39 +68,65 @@ const ProductsListPage = () => {
     router.push('/addProductForm');
   };
 
-  const renderProductItem = ({ item }: { item: Product }) => (
-    <TouchableOpacity 
-      onPress={() => router.push({
-        pathname: '/productDetails',
-        params: { productId: item.id }  
-      })}
-    >
-      <View style={styles.productCard}>
-        <Image source={{ uri: item.image }} style={styles.productImage} />
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{item.productName}</Text>
-          <Text style={styles.productCategory}>{item.category}</Text>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Ionicons name="pricetag" size={16} color="#4B3130" />
-              <Text style={styles.statText}>₱{item.price.toFixed(2)}</Text>
+  const renderProductItem = ({ item }: { item: Product }) => {
+  const isLowStock = item.stocks < LOW_STOCK_THRESHOLD;
+  
+    return (
+      <TouchableOpacity 
+        onPress={() => router.push({
+          pathname: '/productDetails',
+          params: { productId: item.id }  
+        })}
+      >
+        <View style={[
+          styles.productCard,
+          isLowStock && styles.lowStockCard // Apply special styling for low stock
+        ]}>
+          <Image source={{ uri: item.image }} style={styles.productImage} />
+          <View style={styles.productInfo}>
+            <View style={styles.nameContainer}>
+              <Text style={styles.productName}>{item.productName}</Text>
+              {isLowStock && (
+                <View style={styles.lowStockBadge}>
+                  <Text style={styles.lowStockText}>LOW STOCK</Text>
+                </View>
+              )}
             </View>
-            <View style={styles.statItem}>
-              <Ionicons name="cart" size={16} color="#4B3130" />
-              <Text style={styles.statText}>{item.sales ?? 0}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="cube" size={16} color="#4B3130" />
-              <Text style={styles.statText}>{item.stocks}</Text>
+            <Text style={styles.productCategory}>{item.category}</Text>
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Ionicons name="pricetag" size={16} color="#4B3130" />
+                <Text style={styles.statText}>₱{item.price.toFixed(2)}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Ionicons name="cart" size={16} color="#4B3130" />
+                <Text style={styles.statText}>{item.sales ?? 0}</Text>
+              </View>
+              <View style={[
+                styles.statItem,
+                isLowStock && styles.lowStockStat // Highlight stock number if low
+              ]}>
+                <Ionicons 
+                  name="cube" 
+                  size={16} 
+                  color={isLowStock ? '#FF3B30' : '#4B3130'} 
+                />
+                <Text style={[
+                  styles.statText,
+                  isLowStock && styles.lowStockStatText
+                ]}>
+                  {item.stocks}
+                </Text>
+              </View>
             </View>
           </View>
+          <TouchableOpacity style={styles.moreButton}>
+            <Ionicons name="ellipsis-vertical" size={20} color="#4B3130" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.moreButton}>
-          <Ionicons name="ellipsis-vertical" size={20} color="#4B3130" />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -177,7 +205,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 15,
-    paddingTop: 50,
     backgroundColor: '#4B3130',
     elevation: 4,
   },
@@ -335,6 +362,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#4B3130',
     fontFamily: 'Poppins_500Medium',
+  },
+  lowStockCard: {
+  borderLeftWidth: 4,
+  borderLeftColor: '#FF3B30',
+  },
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  lowStockBadge: {
+    backgroundColor: '#FFECEC',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 8,
+  },
+  lowStockText: {
+    color: '#FF3B30',
+    fontSize: 10,
+    fontFamily: 'Poppins_600SemiBold',
+  },
+  lowStockStat: {
+    backgroundColor: '#FFECEC',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+  },
+  lowStockStatText: {
+    color: '#FF3B30',
+    fontFamily: 'Poppins_600SemiBold',
   },
 });
 

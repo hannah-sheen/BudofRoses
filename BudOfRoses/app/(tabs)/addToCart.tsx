@@ -34,33 +34,33 @@ const CartScreen: React.FC = () => {
   const [selectAll, setSelectAll] = useState(true);
 
   useEffect(() => {
-    if (!username) {
-      setLoading(false);
-      return;
+  if (!username) {
+    setLoading(false);
+    return;
+  }
+
+  const cartRef = ref(database, `users/${username}/cart`);
+  const unsubscribe = onValue(cartRef, (snapshot) => {
+    const cartData = snapshot.val();
+    const items: CartItem[] = [];
+
+    if (cartData) {
+      Object.keys(cartData).forEach(key => {
+        items.push({
+          id: key,
+          ...cartData[key],
+          selected: cartData[key].selected !== undefined ? cartData[key].selected : true // Default to true if not set
+        });
+      });
     }
 
-    const cartRef = ref(database, `users/${username}/cart`);
-    const unsubscribe = onValue(cartRef, (snapshot) => {
-      const cartData = snapshot.val();
-      const items: CartItem[] = [];
+    setCartItems(items);
+    setLoading(false);
+    setSelectAll(items.length > 0 && items.every(item => item.selected));
+  });
 
-      if (cartData) {
-        Object.keys(cartData).forEach(key => {
-          items.push({
-            id: key,
-            ...cartData[key],
-            selected: true
-          });
-        });
-      }
-
-      setCartItems(items);
-      setLoading(false);
-      setSelectAll(items.length > 0);
-    });
-
-    return () => unsubscribe();
-  }, [username]);
+  return () => unsubscribe();
+}, [username]);
 
   const updateQuantity = (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) {
@@ -110,13 +110,16 @@ const CartScreen: React.FC = () => {
     );
   };
   
-  const toggleItemSelection = (itemId: string) => {
-    setCartItems(prevItems =>
+ const toggleItemSelection = (itemId: string) => {
+  setCartItems(prevItems =>
       prevItems.map(item =>
         item.id === itemId ? { ...item, selected: !item.selected } : item
       )
     );
-    setSelectAll(cartItems.every(item => item.id === itemId ? !item.selected : item.selected));
+    // Update selectAll based on new state
+    setSelectAll(cartItems.every(item => 
+      item.id === itemId ? !item.selected : item.selected
+    ));
   };
 
   const toggleSelectAll = () => {

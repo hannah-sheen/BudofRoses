@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Alert, ScrollView, SafeAreaView, Image, TouchableOpacity } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { ref, update, push, remove, get } from 'firebase/database';
+import { database } from './firebaseConfig';
 
 type CartItem = {
   id: string;
   productId: string;
-  productName: string;
+  productName: string; 
   price: number;
   quantity: number;
   totalAmount: number;
-  image?: string;
+  image?: string;     
+  selected: boolean;  // Make this required since we're using it
 };
 
 const SHIPPING_FEE = 80;
@@ -19,23 +22,171 @@ const Checkout = () => {
   const params = useLocalSearchParams();
   const { username, cartItems: cartItemsString, total } = params;
   
-  const handlePlaceOrder = () => {
-    if (cartItems.length === 0) {
-      Alert.alert('No Items Selected', 'Please select items to checkout.');
-      return;
+//  const handlePlaceOrder = async () => {
+//   if (cartItems.length === 0) {
+//     Alert.alert('No Items Selected', 'Please select items to checkout.');
+//     return;
+//   }
+
+//   try {
+//     // 1. Update product stocks and sales
+//     const productUpdates: Record<string, number> = {};
+    
+//     // First get all current stock and sales values
+//     const stockPromises = cartItems.map(item => 
+//       get(ref(database, `productlist/${item.productId}/stocks`))
+//     );
+//     const salesPromises = cartItems.map(item => 
+//       get(ref(database, `productlist/${item.productId}/sales`))
+//     );
+
+//     const stockSnapshots = await Promise.all(stockPromises);
+//     const salesSnapshots = await Promise.all(salesPromises);
+
+//     cartItems.forEach((item, index) => {
+//       const currentStocks = stockSnapshots[index].val() || 0;
+//       const currentSales = salesSnapshots[index].val() || 0;
+      
+//       productUpdates[`productlist/${item.productId}/stocks`] = currentStocks - item.quantity;
+//       productUpdates[`productlist/${item.productId}/sales`] = currentSales + item.quantity;
+//     });
+
+//     // 2. Create order record
+//     const orderData = {
+//       username,
+//       items: cartItems.map(item => ({
+//         productId: item.productId,
+//         productName: item.productName,
+//         price: item.price,
+//         quantity: item.quantity,
+//         totalAmount: item.totalAmount,
+//         image: item.image
+//       })),
+//       total: grandTotal,
+//       date: new Date().toISOString(),
+//       status: 'completed' as const
+//     };
+
+//     // 3. Save to user's order history and global orders
+//     const userOrderRef = push(ref(database, `users/${username}/orders`));
+//     const newOrderKey = userOrderRef.key;
+    
+//     if (!newOrderKey) {
+//       throw new Error('Failed to generate order key');
+//     }
+
+//     const updates: Record<string, any> = {
+//       ...productUpdates,
+//       [`users/${username}/orders/${newOrderKey}`]: orderData,
+//       [`orders/${newOrderKey}`]: orderData,
+//       [`users/${username}/cart`]: null // Clear the cart
+//     };
+
+//     // Perform all updates in a single transaction
+//     await update(ref(database), updates);
+
+//     Alert.alert(
+//       'Order Placed', 
+//       `Your order has been placed successfully!\n\nTotal: ₱${grandTotal.toFixed(2)}`
+//     );
+
+//     router.push({
+//       pathname: '/userProductList',
+//       params: { username },
+//     });
+
+//   } catch (error) {
+//     console.error('Checkout error:', error);
+//     Alert.alert('Error', 'Failed to complete checkout. Please try again.');
+//   }
+// };
+
+const handlePlaceOrder = async () => {
+  const selectedItems = cartItems.filter(item => item.selected);
+  
+  if (selectedItems.length === 0) {
+    Alert.alert('No Items Selected', 'Please select items to checkout.');
+    return;
+  }
+
+  try {
+    // 1. Update product stocks and sales for selected items only
+    const productUpdates: Record<string, number> = {};
+    
+    // First get all current stock and sales values for selected items
+    const stockPromises = selectedItems.map(item => 
+      get(ref(database, `productlist/${item.productId}/stocks`))
+    );
+    const salesPromises = selectedItems.map(item => 
+      get(ref(database, `productlist/${item.productId}/sales`))
+    );
+
+    const stockSnapshots = await Promise.all(stockPromises);
+    const salesSnapshots = await Promise.all(salesPromises);
+
+    selectedItems.forEach((item, index) => {
+      const currentStocks = stockSnapshots[index].val() || 0;
+      const currentSales = salesSnapshots[index].val() || 0;
+      
+      productUpdates[`productlist/${item.productId}/stocks`] = currentStocks - item.quantity;
+      productUpdates[`productlist/${item.productId}/sales`] = currentSales + item.quantity;
+    });
+
+    // 2. Create order record with selected items only
+    const orderData = {
+      username,
+      items: selectedItems.map(item => ({
+        productId: item.productId,
+        productName: item.productName,
+        price: item.price,
+        quantity: item.quantity,
+        totalAmount: item.totalAmount,
+        image: item.image
+      })),
+      total: selectedItems.reduce((sum, item) => sum + item.totalAmount, 0),
+      date: new Date().toISOString(),
+      status: 'completed' as const
+    };
+
+    // 3. Save to user's order history and global orders
+    const userOrderRef = push(ref(database, `users/${username}/orders`));
+    const newOrderKey = userOrderRef.key;
+    
+    if (!newOrderKey) {
+      throw new Error('Failed to generate order key');
     }
 
-    // Here you would typically send the order to your backend
+    // 4. Remove only the checked-out items from cart
+    const cartUpdates: Record<string, null> = {};
+    selectedItems.forEach(item => {
+      cartUpdates[`users/${username}/cart/${item.id}`] = null;
+    });
+
+    const updates = {
+      ...productUpdates,
+      [`users/${username}/orders/${newOrderKey}`]: orderData,
+      [`orders/${newOrderKey}`]: orderData,
+      ...cartUpdates
+    };
+
+    // Perform all updates in a single transaction
+    await update(ref(database), updates);
+
     Alert.alert(
       'Order Placed', 
-      `Your order has been placed successfully!\n\nTotal: ₱${grandTotal.toFixed(2)}`
+      `Your selected items have been ordered successfully!\n\nTotal: ₱${orderData.total.toFixed(2)}`
     );
 
     router.push({
       pathname: '/userProductList',
       params: { username },
     });
-  };
+
+  } catch (error) {
+    console.error('Checkout error:', error);
+    Alert.alert('Error', 'Failed to complete checkout. Please try again.');
+  }
+};
 
   // Parse the cart items from the URL params
   const cartItems: CartItem[] = cartItemsString ? JSON.parse(cartItemsString as string) : [];
