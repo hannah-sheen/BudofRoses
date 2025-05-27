@@ -68,8 +68,8 @@ const LoginScreen = () => {
           setLoading(false);
           setUsername('');
           setPassword('');
-          alert('Welcome User!')
-          // router.push('/'); // Replace with your actual route
+          // alert('Welcome User!')
+          router.push('/userProductList'); 
         } else {
           setLoading(false);
           Alert.alert('Login Failed', 'Invalid username or password.');
