@@ -3,29 +3,69 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Activi
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
-import {database} from './firebaseConfig'
+import { database } from './firebaseConfig';
 import { ref, set, get, child } from 'firebase/database';
+import { useForm, Controller } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
 
-
+// Define validation schema
+const signupSchema = yup.object().shape({
+  firstName: yup.string().required('First name is required'),
+  lastName: yup.string().required('Last name is required'),
+  email: yup.string().email('Invalid email format').required('Email is required'),
+  username: yup.string()
+    .required('Username is required')
+    .min(4, 'Username must be at least 4 characters')
+    .matches(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  password: yup.string()
+    .required('Password is required')
+    .min(8, 'Password must be at least 8 characters')
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+    ),
+  confirmPassword: yup.string()
+    .oneOf([yup.ref('password')], 'Passwords must match')
+    .required('Confirm Password is required'),
+  address: yup.string().required('Address is required'),
+  city: yup.string().required('City is required'),
+  state: yup.string().required('State is required'),
+  zipCode: yup.string()
+    .required('ZIP code is required')
+    .matches(/^\d{5}(?:[-\s]\d{4})?$/, 'Invalid ZIP code format'),
+  phone: yup.string()
+    .required('Phone number is required')
+    .matches(/^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/, 'Invalid phone number format'),
+});
 
 const CustomerSignupForm = () => {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    username: '',
-    password: '',
-    confirmPassword: '',
-    address: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    phone: '',
-  });
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [confirmSecureTextEntry, setConfirmSecureTextEntry] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm({
+    resolver: yupResolver(signupSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      username: '',
+      password: '',
+      confirmPassword: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      phone: '',
+    },
+  });
 
   // Load Poppins fonts
   const [fontsLoaded] = useFonts({
@@ -42,40 +82,23 @@ const CustomerSignupForm = () => {
     );
   }
 
-  const handleChange = (name: string, value: string) => {
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
+  const onSubmit = async (data: any) => {
+    setLoading(true);
+    const dbRef = ref(database);
 
-  const handleSubmit = async () => {
-  if (formData.password !== formData.confirmPassword) {
-    alert("Passwords don't match!");
-    return;
-  }
+    try {
+      const snapshot = await get(child(dbRef, 'users'));
+      if (snapshot.exists()) {
+        const users = snapshot.val() as { [key: string]: any };
 
-  if (!formData.username || !formData.email) {
-    alert("Username and Email are required.");
-    return;
-  }
+        const usernameExists = Object.values(users).some(
+          user => user.username === data.username
+        );
+        const emailExists = Object.values(users).some(
+          user => user.email === data.email
+        );
 
-  setLoading(true);
-  const dbRef = ref(database);
-
-  try {
-    const snapshot = await get(child(dbRef, 'users'));
-    if (snapshot.exists()) {
-      const users = snapshot.val() as { [key: string]: any };
-
-      const usernameExists = Object.values(users).some(
-        user => user.username === formData.username
-      );
-      const emailExists = Object.values(users).some(
-        user => user.email === formData.email
-      );
-
-      if (usernameExists) {
+        if (usernameExists) {
           setLoading(false);
           alert('Username already exists. Please choose another.');
           return;
@@ -86,209 +109,284 @@ const CustomerSignupForm = () => {
           alert('Email already exists. Please use another.');
           return;
         }
+      }
+
+      const userId = data.username; 
+      await set(ref(database, 'users/' + userId), {
+        ...data,
+        createdAt: new Date().toISOString()
+      });
+
+      reset();
+      setLoading(false);
+      alert('Account created successfully!');
+      router.push('/'); // Navigate to the login screen
+
+    } catch (error) {
+      setLoading(false);
+      console.error("Signup error:", error);
+      alert("Something went wrong. Please try again later.");
     }
-
-    const userId = formData.username; 
-    await set(ref(database, 'users/' + userId), {
-      ...formData,
-      createdAt: new Date().toISOString()
-    });
-
-     setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      username: '',
-      password: '',
-      confirmPassword: '',
-      address: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      phone: '',
-    });
-
-    setLoading(false);
-    alert('Account created successfully!');
-    router.push('/'); // Navigate to the login screen
-
-  } catch (error) {
-    setLoading(false);
-    console.error("Signup error:", error);
-    alert("Something went wrong. Please try again later.");
-  }
-};
-
-
+  };
 
   return (
     <>
       <ScrollView contentContainerStyle={styles.container}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#4B3130" />
+        <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.push('/')} style={styles.backButton}>
+                  <Ionicons name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Create Account</Text>
+        </View>
+      <View style={styles.itemContainer}>
+        {/* Personal Information Section */}
+        <Text style={[styles.sectionHeader, { fontFamily: 'Poppins_500Medium' }]}>Personal Information</Text>
+        
+        <View style={styles.nameContainer}>
+          <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
+            <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>First Name</Text>
+            <Controller
+              control={control}
+              name="firstName"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
+                  placeholder="John"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
+            />
+            {errors.firstName && <Text style={styles.error}>{errors.firstName.message}</Text>}
+          </View>
+          <View style={[styles.inputContainer, { flex: 1 }]}>
+            <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Last Name</Text>
+            <Controller
+              control={control}
+              name="lastName"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
+                  placeholder="Doe"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
+            />
+            {errors.lastName && <Text style={styles.error}>{errors.lastName.message}</Text>}
+          </View>
+        </View>
+
+        {/* Contact Information Section */}
+        <Text style={[styles.sectionHeader, { fontFamily: 'Poppins_500Medium' }]}>Contact Information</Text>
+        
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Email</Text>
+          <Controller
+            control={control}
+            name="email"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
+                placeholder="your@email.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+              />
+            )}
+          />
+          {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Phone Number</Text>
+          <Controller
+            control={control}
+            name="phone"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
+                placeholder="(123) 456-7890"
+                keyboardType="phone-pad"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+              />
+            )}
+          />
+          {errors.phone && <Text style={styles.error}>{errors.phone.message}</Text>}
+        </View>
+
+        {/* Address Information Section */}
+        <Text style={[styles.sectionHeader, { fontFamily: 'Poppins_500Medium' }]}>Address Information</Text>
+        
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Street Address</Text>
+          <Controller
+            control={control}
+            name="address"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
+                placeholder="123 Main St"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+              />
+            )}
+          />
+          {errors.address && <Text style={styles.error}>{errors.address.message}</Text>}
+        </View>
+
+        <View style={styles.cityStateContainer}>
+          <View style={[styles.inputContainer, { flex: 2, marginRight: 10 }]}>
+            <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>City</Text>
+            <Controller
+              control={control}
+              name="city"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
+                  placeholder="New York"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
+            />
+            {errors.city && <Text style={styles.error}>{errors.city.message}</Text>}
+          </View>
+          <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
+            <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>State</Text>
+            <Controller
+              control={control}
+              name="state"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
+                  placeholder="NY"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
+            />
+            {errors.state && <Text style={styles.error}>{errors.state.message}</Text>}
+          </View>
+          <View style={[styles.inputContainer, { flex: 1 }]}>
+            <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>ZIP</Text>
+            <Controller
+              control={control}
+              name="zipCode"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
+                  placeholder="10001"
+                  keyboardType="number-pad"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
+            />
+            {errors.zipCode && <Text style={styles.error}>{errors.zipCode.message}</Text>}
+          </View>
+        </View>
+
+        {/* Account Information Section */}
+        <Text style={[styles.sectionHeader, { fontFamily: 'Poppins_500Medium' }]}>Account Information</Text>
+        
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Username</Text>
+          <Controller
+            control={control}
+            name="username"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <TextInput
+                style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
+                placeholder="username"
+                autoCapitalize="none"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+              />
+            )}
+          />
+          {errors.username && <Text style={styles.error}>{errors.username.message}</Text>}
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Password</Text>
+          <Controller
+            control={control}
+            name="password"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[styles.passwordInput, { flex: 1, fontFamily: 'Poppins_400Regular' }]}
+                  placeholder="••••••••"
+                  secureTextEntry={secureTextEntry}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+                <TouchableOpacity 
+                  style={styles.eyeIcon} 
+                  onPress={() => setSecureTextEntry(!secureTextEntry)}
+                >
+                  <Ionicons 
+                    name={secureTextEntry ? "eye-off-outline" : "eye-outline"} 
+                    size={20} 
+                    color="#4B3130" 
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+          {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Confirm Password</Text>
+          <Controller
+            control={control}
+            name="confirmPassword"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[styles.passwordInput, { flex: 1, fontFamily: 'Poppins_400Regular' }]}
+                  placeholder="••••••••"
+                  secureTextEntry={confirmSecureTextEntry}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+                <TouchableOpacity 
+                  style={styles.eyeIcon} 
+                  onPress={() => setConfirmSecureTextEntry(!confirmSecureTextEntry)}
+                >
+                  <Ionicons 
+                    name={confirmSecureTextEntry ? "eye-off-outline" : "eye-outline"} 
+                    size={20} 
+                    color="#4B3130" 
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+          {errors.confirmPassword && <Text style={styles.error}>{errors.confirmPassword.message}</Text>}
+        </View>
+
+        {/* Submit Button */}
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit(onSubmit)}>
+          <Text style={[styles.submitButtonText, { fontFamily: 'Poppins_600SemiBold' }]}>Create Account</Text>
         </TouchableOpacity>
-
-        <Text style={[styles.header, { fontFamily: 'Poppins_600SemiBold' }]}>Create Account</Text>
-
-      {/* Personal Information Section */}
-      <Text style={[styles.sectionHeader, { fontFamily: 'Poppins_500Medium' }]}>Personal Information</Text>
-      
-      <View style={styles.nameContainer}>
-        <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
-          <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>First Name</Text>
-          <TextInput
-            style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-            placeholder="John"
-            value={formData.firstName}
-            onChangeText={(text) => handleChange('firstName', text)}
-          />
         </View>
-        <View style={[styles.inputContainer, { flex: 1 }]}>
-          <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Last Name</Text>
-          <TextInput
-            style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-            placeholder="Doe"
-            value={formData.lastName}
-            onChangeText={(text) => handleChange('lastName', text)}
-          />
-        </View>
-      </View>
-
-      {/* Contact Information Section */}
-      <Text style={[styles.sectionHeader, { fontFamily: 'Poppins_500Medium' }]}>Contact Information</Text>
-      
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Email</Text>
-        <TextInput
-          style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-          placeholder="your@email.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={formData.email}
-          onChangeText={(text) => handleChange('email', text)}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Phone Number</Text>
-        <TextInput
-          style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-          placeholder="(123) 456-7890"
-          keyboardType="phone-pad"
-          value={formData.phone}
-          onChangeText={(text) => handleChange('phone', text)}
-        />
-      </View>
-
-      {/* Address Information Section */}
-      <Text style={[styles.sectionHeader, { fontFamily: 'Poppins_500Medium' }]}>Address Information</Text>
-      
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Street Address</Text>
-        <TextInput
-          style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-          placeholder="123 Main St"
-          value={formData.address}
-          onChangeText={(text) => handleChange('address', text)}
-        />
-      </View>
-
-      <View style={styles.cityStateContainer}>
-        <View style={[styles.inputContainer, { flex: 2, marginRight: 10 }]}>
-          <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>City</Text>
-          <TextInput
-            style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-            placeholder="New York"
-            value={formData.city}
-            onChangeText={(text) => handleChange('city', text)}
-          />
-        </View>
-        <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
-          <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>State</Text>
-          <TextInput
-            style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-            placeholder="NY"
-            value={formData.state}
-            onChangeText={(text) => handleChange('state', text)}
-          />
-        </View>
-        <View style={[styles.inputContainer, { flex: 1 }]}>
-          <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>ZIP</Text>
-          <TextInput
-            style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-            placeholder="10001"
-            keyboardType="number-pad"
-            value={formData.zipCode}
-            onChangeText={(text) => handleChange('zipCode', text)}
-          />
-        </View>
-      </View>
-
-      {/* Account Information Section */}
-      <Text style={[styles.sectionHeader, { fontFamily: 'Poppins_500Medium' }]}>Account Information</Text>
-      
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Username</Text>
-        <TextInput
-          style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-          placeholder="username"
-          autoCapitalize="none"
-          value={formData.username}
-          onChangeText={(text) => handleChange('username', text)}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Password</Text>
-        <View style={styles.passwordInputContainer}>
-          <TextInput
-            style={[styles.passwordInput, { flex: 1, fontFamily: 'Poppins_400Regular' }]}
-            placeholder="••••••••"
-            secureTextEntry={secureTextEntry}
-            value={formData.password}
-            onChangeText={(text) => handleChange('password', text)}
-          />
-          <TouchableOpacity 
-            style={styles.eyeIcon} 
-            onPress={() => setSecureTextEntry(!secureTextEntry)}
-          >
-            <Ionicons 
-              name={secureTextEntry ? "eye-off-outline" : "eye-outline"} 
-              size={20} 
-              color="#4B3130" 
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Confirm Password</Text>
-        <View style={styles.passwordInputContainer}>
-          <TextInput
-            style={[styles.passwordInput, { flex: 1, fontFamily: 'Poppins_400Regular' }]}
-            placeholder="••••••••"
-            secureTextEntry={confirmSecureTextEntry}
-            value={formData.confirmPassword}
-            onChangeText={(text) => handleChange('confirmPassword', text)}
-          />
-          <TouchableOpacity 
-            style={styles.eyeIcon} 
-            onPress={() => setConfirmSecureTextEntry(!confirmSecureTextEntry)}
-          >
-            <Ionicons 
-              name={confirmSecureTextEntry ? "eye-off-outline" : "eye-outline"} 
-              size={20} 
-              color="#4B3130" 
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Submit Button */}
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-        <Text style={[styles.submitButtonText, { fontFamily: 'Poppins_600SemiBold' }]}>Create Account</Text>
-      </TouchableOpacity>
- </ScrollView>
+      </ScrollView>
 
       {/* Loading Overlay */}
       {loading && (
@@ -320,22 +418,33 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    padding: 20,
+    // padding: 20,
     paddingTop: 60,
     backgroundColor: '#F7F1E5',
   },
   backButton: {
     position: 'absolute',
-    top: 60,
+    // top: 60,
     left: 20,
     zIndex: 1,
     padding: 8,
   },
   header: {
-    fontSize: 28,
-    marginBottom: 20,
+    backgroundColor: '#4B3130',
+    width: '100%',
+    padding:10,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+    headerTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#fff',
     textAlign: 'center',
-    color: '#4B3130',
   },
   sectionHeader: {
     fontSize: 18,
@@ -414,7 +523,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     color: '#4B3130',
     fontSize: 16,
-  }
+  },
+    error: {
+    color: 'red',
+    fontSize: 12,
+    marginTop: 5,
+    fontFamily: 'Poppins_400Regular',
+  },
+  itemContainer: {
+    padding: 10,
+  },
 });
 
 export default CustomerSignupForm;

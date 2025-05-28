@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image } from 'react-native';
+import {
+  View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import { database } from './firebaseConfig';
 import { ref, push } from 'firebase/database';
+import { useForm, Controller } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
 
 import {
   useFonts,
@@ -14,15 +19,45 @@ import {
   Poppins_600SemiBold,
 } from '@expo-google-fonts/poppins';
 
+const schema = yup.object().shape({
+  productName: yup.string().required('Product name is required'),
+  description: yup.string().required('Description is required'),
+  price: yup
+    .number()
+    .typeError('Price must be a number')
+    .positive('Price must be positive')
+    .required('Price is required'),
+  quantity: yup
+    .number()
+    .typeError('Quantity must be a number')
+    .min(1, 'Minimum quantity is 1')
+    .required('Quantity is required'),
+  category: yup
+    .string()
+    .notOneOf(['Select'], 'Please choose a valid category')
+    .required('Category is required'),
+});
+
 const AddProductForm = () => {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [productName, setProductName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [category, setCategory] = useState('Select');
   const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      productName: '',
+      description: '',
+      price: 0,
+      quantity: 0,
+      category: 'Select',
+    },
+  });
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -52,30 +87,21 @@ const AddProductForm = () => {
       quality: 1,
     });
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
+    if (!result.canceled && result.assets?.length > 0) {
       setImage(result.assets[0].uri);
     }
   };
 
-  const handleSubmit = async () => {
-    if (
-      !productName.trim() ||
-      !description.trim() ||
-      !price ||
-      !quantity ||
-      !category ||
-      !image
-    ) {
-      alert('Please fill in all fields.');
+  const onSubmit = async (data: any) => {
+    if (!image) {
+      alert('Please select an image.');
       return;
     }
 
     const productData = {
-      productName,
-      description,
-      price: parseFloat(price),
-      stocks: parseInt(quantity),
-      category,
+      ...data,
+      price: parseFloat(data.price),
+      stocks: parseInt(data.quantity),
       image,
       createdAt: new Date().toISOString(),
       sales: 0,
@@ -95,17 +121,12 @@ const AddProductForm = () => {
     }
   };
 
-  if (!fontsLoaded) {
-    return null; // or a loading indicator
-  }
-
+  if (!fontsLoaded) return null;
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <Ionicons name="refresh-circle" size={60} color="#4B3130" />
-        <Text style={[styles.loadingText, { fontFamily: 'Poppins_500Medium' }]}>
-          Adding product...
-        </Text>
+        <Text style={styles.loadingText}>Adding product...</Text>
       </View>
     );
   }
@@ -113,13 +134,11 @@ const AddProductForm = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.push('/productList')}>
+        <TouchableOpacity onPress={() => router.push('/productList')} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add New Product</Text>
       </View>
-
-      {/* Product Image */}
 
       <View style={styles.itemContainer}>
         <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
@@ -135,60 +154,90 @@ const AddProductForm = () => {
 
         {/* Product Name */}
         <Text style={styles.label}>Product Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter product name"
-          value={productName}
-          onChangeText={setProductName}
+        <Controller
+          control={control}
+          name="productName"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder="Enter product name"
+              onChangeText={onChange}
+              value={value?.toString()}
+            />
+          )}
         />
+        {errors.productName && <Text style={styles.error}>{errors.productName.message}</Text>}
 
         {/* Description */}
         <Text style={styles.label}>Description</Text>
-        <TextInput
-          style={[styles.input, styles.multilineInput]}
-          placeholder="Enter product description"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          numberOfLines={4}
+        <Controller
+          control={control}
+          name="description"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              style={[styles.input, styles.multilineInput]}
+              placeholder="Enter description"
+              multiline
+              numberOfLines={4}
+              onChangeText={onChange}
+              value={value?.toString()}
+            />
+          )}
         />
+        {errors.description && <Text style={styles.error}>{errors.description.message}</Text>}
 
         {/* Price */}
         <Text style={styles.label}>Price (₱)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter price"
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="numeric"
+        <Controller
+          control={control}
+          name="price"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder="Enter price"
+              keyboardType="numeric"
+              onChangeText={onChange}
+              value={value?.toString()}
+            />
+          )}
         />
+        {errors.price && <Text style={styles.error}>{errors.price.message}</Text>}
 
         {/* Quantity */}
         <Text style={styles.label}>Available Stocks</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter available quantity"
-          value={quantity}
-          onChangeText={setQuantity}
-          keyboardType="numeric"
+        <Controller
+          control={control}
+          name="quantity"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder="Enter quantity"
+              keyboardType="numeric"
+              onChangeText={onChange}
+              value={value?.toString()}
+            />
+          )}
         />
+        {errors.quantity && <Text style={styles.error}>{errors.quantity.message}</Text>}
 
         {/* Category */}
         <Text style={styles.label}>Category</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={category}
-            onValueChange={(itemValue) => setCategory(itemValue)}
-            style={styles.picker}
-          >
-            {categories.map((cat) => (
-              <Picker.Item key={cat} label={cat} value={cat} />
-            ))}
-          </Picker>
-        </View>
+        <Controller
+          control={control}
+          name="category"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.pickerContainer}>
+              <Picker selectedValue={value} onValueChange={(val) => onChange(val)}>
+                {categories.map((cat) => (
+                  <Picker.Item key={cat} label={cat} value={cat} />
+                ))}
+              </Picker>
+            </View>
+          )}
+        />
+        {errors.category && <Text style={styles.error}>{errors.category.message}</Text>}
 
-        {/* Submit Button */}
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit(onSubmit)}>
           <Text style={styles.submitButtonText}>Add Product</Text>
         </TouchableOpacity>
       </View>
@@ -286,7 +335,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_400Regular',
   },
   submitButton: {
-    backgroundColor: '#DBA6B6',
+    backgroundColor: '#4B3130',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -305,7 +354,12 @@ const styles = StyleSheet.create({
   },
   itemContainer: {
     padding: 20,
-  }
+  },
+    error: {
+    color: 'red',
+    marginBottom: 10,
+    fontFamily: 'Poppins_400Regular',
+  },
 });
 
 export default AddProductForm;

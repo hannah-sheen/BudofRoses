@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import {
   useFonts,
@@ -20,13 +21,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { database } from './firebaseConfig';
 import { ref, get, child } from 'firebase/database';
+import { useForm, Controller } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
+
+const schema = yup.object().shape({
+  username: yup.string().required('Username is required'),
+  password: yup.string().required('Password is required'),
+});
 
 const LoginScreen = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [loading, setLoading] = useState(false);
-
   const router = useRouter();
 
   let [fontsLoaded] = useFonts({
@@ -35,19 +41,24 @@ const LoginScreen = () => {
     Poppins_600SemiBold,
   });
 
-  const handleLogin = async () => {
-    if (!username || !password) {
-      Alert.alert('Missing Info', 'Please enter both username and password.');
-      return;
-    }
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      username: '',
+      password: '',
+    },
+  });
 
+  const handleLogin = async ({ username, password }: { username: string; password: string }) => {
     setLoading(true);
 
-    // Admin login
     if (username === 'Admin_01' && password === 'iamtheadmin') {
       setLoading(false);
-      setUsername('');
-      setPassword('');
       router.push('/productList');
       return;
     }
@@ -60,19 +71,12 @@ const LoginScreen = () => {
         const users = snapshot.val() as { [key: string]: any };
 
         const matchedUser = Object.values(users).find(
-          (user: any) =>
-            user.username === username && user.password === password
+          (user: any) => user.username === username && user.password === password
         );
 
         if (matchedUser) {
           setLoading(false);
-          setUsername('');
-          setPassword('');
-        
-          router.push({
-            pathname: '/userProductList',
-            params: { username },
-          });
+          router.push({ pathname: '/userProductList', params: { username } });
         } else {
           setLoading(false);
           Alert.alert('Login Failed', 'Invalid username or password.');
@@ -88,52 +92,62 @@ const LoginScreen = () => {
     }
   };
 
-  if (!fontsLoaded) {
-    return null;
-  }
-
-  if (!fontsLoaded) {
-    return null;
-  }
+  if (!fontsLoaded) return null;
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <Text style={styles.title}>Welcome Back</Text>
+      <Image
+        source={require('../../assets/images/budlogo.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <Text style={styles.subtitle}>Please sign in to your account</Text>
 
-      <TextInput style={styles.input}
-        placeholder="Username"
-        placeholderTextColor="#aaa"
-        value={username}
-        onChangeText={setUsername}
-      />
-
-      <View style={styles.passwordContainer}>
-        <TextInput
-          style={styles.passwordInput}
-          placeholder="Password"
-          placeholderTextColor="#aaa"
-          secureTextEntry={secureTextEntry}
-          value={password}
-          onChangeText={setPassword}
-        />
-        <TouchableOpacity
-          onPress={() => setSecureTextEntry(!secureTextEntry)}
-        >
-          <Ionicons
-            name={secureTextEntry ? 'eye-off' : 'eye'}
-            size={24}
-            color="gray"
+      {/* Username */}
+      <Controller
+        control={control}
+        name="username"
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            style={styles.input}
+            placeholder="Username"
+            placeholderTextColor="#aaa"
+            value={value}
+            onChangeText={onChange}
           />
+        )}
+      />
+      {errors.username && <Text style={styles.error}>{errors.username.message}</Text>}
+
+      {/* Password */}
+      <View style={styles.passwordContainer}>
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Password"
+              placeholderTextColor="#aaa"
+              secureTextEntry={secureTextEntry}
+              value={value}
+              onChangeText={onChange}
+            />
+          )}
+        />
+        <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
+          <Ionicons name={secureTextEntry ? 'eye-off' : 'eye'} size={24} color="gray" />
         </TouchableOpacity>
       </View>
+      {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
 
+      {/* Login Button */}
       <TouchableOpacity
         style={styles.loginButton}
-        onPress={handleLogin}
+        onPress={handleSubmit(handleLogin)}
         disabled={loading}
       >
         {loading ? (
@@ -149,6 +163,10 @@ const LoginScreen = () => {
           <Text style={styles.signupLink}> Sign up</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity onPress={() => router.push('/forgotPass')}>
+        <Text style={styles.forgotLink}>Forgot Password?</Text>
+      </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 };
@@ -156,16 +174,15 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#DBA6B6',
+    backgroundColor: '#D9D3C3',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
-  title: {
-    fontSize: 28,
-    fontFamily: 'Poppins_600SemiBold',
-    marginBottom: 10,
-    color: '#333',
+  logo: {
+    width: 300,
+    height: 200,
+    marginBottom: 20,
   },
   subtitle: {
     fontSize: 16,
@@ -181,7 +198,7 @@ const styles = StyleSheet.create({
     borderColor: '#4B3130',
     borderWidth: 1,
     paddingHorizontal: 15,
-    marginBottom: 15,
+    marginBottom: 5,
     fontSize: 16,
     fontFamily: 'Poppins_400Regular',
     color: '#4B3130',
@@ -194,7 +211,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderColor: '#4B3130',
     borderWidth: 1,
-    marginBottom: 10,
+    marginBottom: 5,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -212,7 +229,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 25,
+    marginVertical: 15,
   },
   loginButtonText: {
     color: '#fff',
@@ -232,6 +249,21 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_500Medium',
     color: '#4B3130',
   },
+  error: {
+    alignSelf: 'flex-start',
+    marginBottom: 5,
+    color: 'red',
+    fontSize: 12,
+    fontFamily: 'Poppins_400Regular',
+  },
+  forgotLink: {
+  fontSize: 14,
+  fontFamily: 'Poppins_500Medium',
+  color: '#4B3130',
+  marginTop: 10,
+  textAlign: 'center',
+  textDecorationLine: 'underline',
+}
 });
 
 export default LoginScreen;
