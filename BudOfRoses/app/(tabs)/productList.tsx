@@ -5,6 +5,9 @@ import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold } 
 import { useRouter } from 'expo-router';
 import { database } from './firebaseConfig';
 import { onValue, ref } from 'firebase/database';
+import { Alert } from 'react-native';
+import { getAuth, signOut } from 'firebase/auth';
+
 
 type Product = {
   id: string;
@@ -21,6 +24,7 @@ const LOW_STOCK_THRESHOLD = 20;
 const ProductsListPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -40,8 +44,15 @@ const ProductsListPage = () => {
           ...data[key],
         }));
         setProducts(loadedProducts);
+        
+        const revenue = loadedProducts.reduce(
+          (sum, product) => sum + (product.price * (product.sales || 0)), 
+          0
+        );
+        setTotalRevenue(revenue);
       } else {
         setProducts([]);
+        setTotalRevenue(0);
       }
       setLoading(false);
     });
@@ -68,9 +79,33 @@ const ProductsListPage = () => {
     router.push('/addProductForm');
   };
 
+
+  const handleLogout = () => {
+      Alert.alert(
+        'Confirm Logout',
+        'Are you sure you want to log out?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Logout',
+            style: 'destructive',
+            onPress: () => {
+              // Any cleanup logic here if needed
+              router.replace('/');
+            },
+          },
+        ],
+        { cancelable: true }
+      );
+    };
+
+
   const renderProductItem = ({ item }: { item: Product }) => {
-  const isLowStock = item.stocks < LOW_STOCK_THRESHOLD;
-  
+    const isLowStock = item.stocks < LOW_STOCK_THRESHOLD;
+    
     return (
       <TouchableOpacity 
         onPress={() => router.push({
@@ -80,7 +115,7 @@ const ProductsListPage = () => {
       >
         <View style={[
           styles.productCard,
-          isLowStock && styles.lowStockCard // Apply special styling for low stock
+          isLowStock && styles.lowStockCard
         ]}>
           <Image source={{ uri: item.image }} style={styles.productImage} />
           <View style={styles.productInfo}>
@@ -104,7 +139,7 @@ const ProductsListPage = () => {
               </View>
               <View style={[
                 styles.statItem,
-                isLowStock && styles.lowStockStat // Highlight stock number if low
+                isLowStock && styles.lowStockStat
               ]}>
                 <Ionicons 
                   name="cube" 
@@ -120,9 +155,7 @@ const ProductsListPage = () => {
               </View>
             </View>
           </View>
-          <TouchableOpacity style={styles.moreButton}>
-            <Ionicons name="ellipsis-vertical" size={20} color="#4B3130" />
-          </TouchableOpacity>
+          {/* Removed the three dots button */}
         </View>
       </TouchableOpacity>
     );
@@ -133,9 +166,6 @@ const ProductsListPage = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Product Inventory</Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddProduct}>
-          <Ionicons name="add" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
@@ -150,7 +180,7 @@ const ProductsListPage = () => {
         />
       </View>
 
-      {/* Stats */}
+      {/* Stats Dashboard */}
       <View style={styles.statsContainerWrapper}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsContent}>
           <View style={styles.statCard}>
@@ -164,6 +194,11 @@ const ProductsListPage = () => {
             <Text style={styles.statCardValue}>
               {products.reduce((sum, product) => sum + (product.sales || 0), 0)}
             </Text>
+          </View>
+          <View style={styles.statCard}>
+            <Ionicons name="cash" size={24} color="#4B3130" />
+            <Text style={styles.statCardTitle}>Total Revenue</Text>
+            <Text style={styles.statCardValue}>₱{totalRevenue.toFixed(2)}</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="warning" size={24} color="#4B3130" />
@@ -191,36 +226,42 @@ const ProductsListPage = () => {
           }
         />
       </View>
+
+      {/* Bottom Navbar */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navButton} onPress={() => router.push('/adminOrderHistory')}>
+          <Ionicons name="receipt-outline" size={24} color="#FFFFFF" />
+          <Text style={styles.navLabel}>Orders</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navButton} onPress={handleAddProduct}>
+          <Ionicons name="add-circle-outline" size={24} color="#FFFFFF" />
+          <Text style={styles.navLabel}>Add</Text>
+        </TouchableOpacity>
+       <TouchableOpacity style={styles.navButton} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
+          <Text style={styles.navLabel}>Logout</Text>
+       </TouchableOpacity>
+
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-   container: {
+  container: {
     flex: 1,
     backgroundColor: '#D9D3C3',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
+    padding: 10,
     backgroundColor: '#4B3130',
-    elevation: 4,
+    alignItems: 'center',
+    justifyContent: 'flex-start'
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontFamily: 'Poppins_600SemiBold',
     color: '#FFFFFF',
-  },
-  addButton: {
-    backgroundColor: '#ACBA96',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 2,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -243,7 +284,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Poppins_400Regular',
   },
-   statsContainerWrapper: {
+  statsContainerWrapper: {
     backgroundColor: '#D9D3C3',
     paddingVertical: 10,
     marginHorizontal: 15,
@@ -269,13 +310,12 @@ const styles = StyleSheet.create({
   },
   statCardValue: {
     color: '#4B3130',
-    fontSize: 28,
+    fontSize: 22,
     fontFamily: 'Poppins_600SemiBold',
     marginTop: 4,
   },
   productsListContainer: {
     flex: 1, 
-    marginTop: 0, 
   },
   listContent: {
     paddingHorizontal: 15,
@@ -326,20 +366,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Poppins_400Regular',
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    marginLeft: 5,
-    color: '#4B3130',
-    fontSize: 14,
-    fontFamily: 'Poppins_400Regular',
-  },
-  moreButton: {
-    padding: 5,
-    alignSelf: 'flex-start',
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -364,8 +390,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_500Medium',
   },
   lowStockCard: {
-  borderLeftWidth: 4,
-  borderLeftColor: '#FF3B30',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF3B30',
   },
   nameContainer: {
     flexDirection: 'row',
@@ -392,6 +418,23 @@ const styles = StyleSheet.create({
   lowStockStatText: {
     color: '#FF3B30',
     fontFamily: 'Poppins_600SemiBold',
+  },
+  // Bottom Navbar Styles
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#4B3130',
+    paddingVertical: 10,
+  },
+  navButton: {
+    alignItems: 'center',
+  },
+  navLabel: {
+    color: '#FFFFFF',
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 12,
+    marginTop: 4,
   },
 });
 

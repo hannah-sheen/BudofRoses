@@ -202,9 +202,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4B3130',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 15,
+    padding: 10,
     width: '100%',
   },
   headerTitle: {

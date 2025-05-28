@@ -18,10 +18,11 @@ const EditProductForm = () => {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [category, setCategory] = useState('Roses');
+  const [category, setCategory] = useState('Select');
   const [image, setImage] = useState<string | null>(null);
 
   const categories = [
+    'Select',
     'Roses',
     'Tulips',
     'Lilies',
@@ -117,86 +118,91 @@ const EditProductForm = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={() => router.push('/productDetails')}
-      >
-        <Ionicons name="arrow-back" size={24} color="#4B3130" />
-      </TouchableOpacity>
 
-      <Text style={[styles.header, { fontFamily: 'Poppins_600SemiBold' }]}>Edit Product</Text>
-
-      <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
-        {image ? (
-          <Image source={{ uri: image }} style={styles.imagePreview} />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Ionicons name="camera" size={40} color="#888" />
-            <Text style={styles.uploadText}>Tap to upload product image</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-
-      <Text style={styles.label}>Product Name</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter product name"
-        value={productName}
-        onChangeText={setProductName}
-      />
-
-      <Text style={styles.label}>Description</Text>
-      <TextInput
-        style={[styles.input, styles.multilineInput]}
-        placeholder="Enter product description"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        numberOfLines={4}
-      />
-
-      <Text style={styles.label}>Price (₱)</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter price"
-        value={price}
-        onChangeText={setPrice}
-        keyboardType="numeric"
-      />
-
-      <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Available Stocks</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter available quantity"
-        value={quantity}
-        onChangeText={setQuantity}
-        keyboardType="numeric"
-      />
-
-      <Text style={styles.label}>Category</Text>
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={category}
-          onValueChange={(itemValue) => setCategory(itemValue)}
-          style={styles.picker}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => router.push('/productDetails')}
         >
-          {categories.map((cat) => (
-            <Picker.Item key={cat} label={cat} value={cat} />
-          ))}
-        </Picker>
+          <Ionicons name="arrow-back" size={24} color="#ffff" />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { fontFamily: 'Poppins_600SemiBold', color: '#fff' }]}>Edit Product</Text>
       </View>
 
-      <TouchableOpacity 
-        style={styles.submitButton} 
-        onPress={handleSubmit}
-        disabled={saving}
-      >
-        {saving ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.submitButtonText}>Save Changes</Text>
-        )}
-      </TouchableOpacity>
+
+      <View style={styles.itemContainer}>
+        <TouchableOpacity style={styles.imageUpload} onPress={pickImage}>
+          {image ? (
+            <Image source={{ uri: image }} style={styles.imagePreview} />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Ionicons name="camera" size={40} color="#888" />
+              <Text style={styles.uploadText}>Tap to upload product image</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Product Name</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter product name"
+          value={productName}
+          onChangeText={setProductName}
+        />
+
+        <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Description</Text>
+        <TextInput
+          style={[styles.input, styles.multilineInput]}
+          placeholder="Enter product description"
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          numberOfLines={4}
+        />
+
+        <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Price (₱)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter price"
+          value={price}
+          onChangeText={setPrice}
+          keyboardType="numeric"
+        />
+
+        <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Available Stocks</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter available quantity"
+          value={quantity}
+          onChangeText={setQuantity}
+          keyboardType="numeric"
+        />
+
+        <Text style={[styles.label, { fontFamily: 'Poppins_500Medium' }]}>Category</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={category}
+            onValueChange={(itemValue) => setCategory(itemValue)}
+            style={styles.picker}
+          >
+            {categories.map((cat) => (
+              <Picker.Item key={cat} label={cat} value={cat} />
+            ))}
+          </Picker>
+        </View>
+
+        <TouchableOpacity 
+          style={styles.submitButton} 
+          onPress={handleSubmit}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={[styles.submitButtonText, { fontFamily: 'Poppins_600SemiBold' }]}>Save Changes</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 };
@@ -210,36 +216,41 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    padding: 20,
     paddingTop: 80,
     paddingBottom: 40,
     backgroundColor: '#F0DCD3',
   },
-  backButton: {
+   header: {
+    backgroundColor: '#4B3130',
+    width: '100%',
+    padding:10,
     position: 'absolute',
-    top: 40,
-    left: 10,
-    zIndex: 1,
+    top: 0,
+    left: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
     padding: 8,
   },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+  headerTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#fff',
     textAlign: 'center',
-    color: '#555',
+    marginRight: 40, // to center text accounting for back button width
   },
   imageUpload: {
     alignSelf: 'center',
     marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#DBA6B6',
+    borderRadius: 10,
   },
   imagePlaceholder: {
     width: 200,
     height: 200,
-    borderWidth: 2,
-    borderColor: '#DBA6B6',
-    borderStyle: 'dashed',
-    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f9f9f9',
@@ -295,6 +306,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  itemContainer: {
+    padding: 20,
+  }
 });
 
 export default EditProductForm;

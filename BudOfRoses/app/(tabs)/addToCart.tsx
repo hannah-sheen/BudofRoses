@@ -134,24 +134,34 @@ const CartScreen: React.FC = () => {
   };
 
   const handleCheckout = () => {
-    const selectedItems = cartItems.filter(item => item.selected);
-    
-    if (selectedItems.length === 0) {
-      Alert.alert('No items selected', 'Please select items to checkout.');
-      return;
-    }
+  const selectedItems = cartItems.filter(item => item.selected);
+  
+  if (selectedItems.length === 0) {
+    Alert.alert('No items selected', 'Please select items to checkout.');
+    return;
+  }
 
-    const selectedTotal = selectedItems.reduce((sum, item) => sum + item.totalAmount, 0);
-    
-    router.push({
-      pathname: '/checkout',
-      params: { 
-        username: username,
-        cartItems: JSON.stringify(selectedItems),
-        total: selectedTotal.toFixed(2)
-      }
-    });
-  };
+  const selectedTotal = selectedItems.reduce((sum, item) => sum + item.totalAmount, 0);
+  
+  // Create a simplified version of the items with just the essential data
+  const checkoutItems = selectedItems.map(item => ({
+    productId: item.productId,
+    productName: item.productName,
+    price: item.price,
+    quantity: item.quantity,
+    totalAmount: item.totalAmount,
+    image: item.image || 'https://via.placeholder.com/150'
+  }));
+
+  router.push({
+    pathname: '/checkout',
+    params: { 
+      username: username as string,
+      cartItems: JSON.stringify(checkoutItems),
+      total: selectedTotal.toFixed(2)
+    }
+  });
+};
 
   const total = cartItems
     .filter(item => item.selected)
