@@ -5,11 +5,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useFonts, Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import { useFonts, Poppins_400Regular, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
+import { useCart } from './addToCart';
 import Navbar from './navBar';
 import { database } from './firebaseConfig';
 import { ref, onValue } from 'firebase/database';
-import { useLocalSearchParams } from 'expo-router';
 
 type Product = {
   id: string;
@@ -22,16 +22,16 @@ type Product = {
 };
 
 const UserProductsListPage = () => {
-  const { username } = useLocalSearchParams<{ username: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { cart } = useCart();
+  const cartItemCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_600SemiBold,
-    Poppins_700Bold,
   });
 
   useEffect(() => {
@@ -69,210 +69,151 @@ const UserProductsListPage = () => {
   const handlePressProduct = (product: Product) => {
     router.push({
       pathname: '/viewProduct',
-      params: { 
-        productId: product.id,
-        username: username 
-      }
+      params: { productId: product.id },
     });
   };
 
   const renderProductItem = ({ item }: { item: Product }) => (
-    <TouchableOpacity style={styles.gridItem} onPress={() => handlePressProduct(item)}>
-      <View style={styles.imageContainer}>
+    <View style={styles.gridItemContainer}>
+      <TouchableOpacity 
+        style={styles.gridItem} 
+        onPress={() => handlePressProduct(item)}
+      >
         <Image 
           source={{ uri: item.image || 'https://via.placeholder.com/150' }} 
           style={styles.gridImage} 
           defaultSource={{ uri: 'https://via.placeholder.com/150' }}
         />
-      </View>
-      <Text style={styles.gridText} numberOfLines={1}>{item.productName}</Text>
-      <Text style={styles.priceText}>₱{item.price.toFixed(2)}</Text>
-    </TouchableOpacity>
+        <Text style={styles.gridText}>{item.productName}</Text>
+        <Text style={styles.priceText}>₱{item.price.toFixed(2)}</Text>
+      </TouchableOpacity>
+    </View>
   );
 
-  return(
+  return (
     <SafeAreaView style={styles.container}>
-    {/* Header and Content */}
-    <View style={{flex: 1}}>
       {/* Header */}
-     <View style={styles.header}>
+      <View style={styles.header}>
         <Text style={styles.headerTitle}>Bud of Roses</Text>
-        <TouchableOpacity
-          style={styles.cartButton}
-          onPress={() =>
-            router.push({
-              pathname: '/addToCart',
-              params: { username: username },
-            })
-          }
-        >
-          <Ionicons name="cart-outline" size={24} color="#fff" />
-        </TouchableOpacity>
       </View>
 
       {/* Search */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#4B3130" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color="#4B3130" />
         <TextInput
           style={styles.searchInput}
           placeholder="Search flowers..."
-          placeholderTextColor="#A6A6A6"
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
       </View>
 
       {/* Product Grid */}
-      <View style={styles.contentContainer}>
-        {filteredProducts.length > 0 ? (
-          <FlatList
-            data={filteredProducts}
-            renderItem={renderProductItem}
-            keyExtractor={(item) => item.id}
-            numColumns={2}
-            contentContainerStyle={styles.gridList}
-            showsVerticalScrollIndicator={false}
-          />
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="flower-outline" size={50} color="#4B3130" />
-            <Text style={styles.emptyText}>No products found</Text>
-          </View>
-        )}
-      </View>
-    </View>
-    
-    {/* Navbar at the very bottom */}
-    <View style={styles.navbar}>
+      {filteredProducts.length > 0 ? (
+        <FlatList
+          data={filteredProducts}
+          renderItem={renderProductItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          contentContainerStyle={styles.gridList}
+          columnWrapperStyle={styles.columnWrapper}
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No products found</Text>
+        </View>
+      )}
+      
       <Navbar/>
-    </View>
-  </SafeAreaView>
- )
+    </SafeAreaView>
+  );
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#F8F5F0',
-    justifyContent: 'space-between', // This will push header to top and navbar to bottom
-  },
+  container: { flex: 1, backgroundColor: '#D9D3C3' },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8F5F0',
+    backgroundColor: '#D9D3C3',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between', 
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+    flexDirection: 'row', 
+    justifyContent: 'space-between',
+    alignItems: 'center', 
+    padding: 15, 
+    paddingTop: 50, 
     backgroundColor: '#4B3130',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
   },
   headerTitle: {
-    fontSize: 24, 
-    fontFamily: 'Poppins_700Bold', 
+    fontSize: 22, 
+    fontFamily: 'Poppins_600SemiBold', 
     color: '#FFFFFF',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
   },
   searchContainer: {
     flexDirection: 'row', 
     alignItems: 'center',
     backgroundColor: '#FFFFFF', 
-    marginHorizontal: 24,
-    marginVertical: 16,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    margin: 15, 
+    borderRadius: 10,
+    paddingHorizontal: 15, 
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  searchIcon: {
-    marginRight: 8,
   },
   searchInput: {
     flex: 1, 
-    height: 48, 
+    height: 50, 
     color: '#4B3130', 
     fontSize: 16,
     fontFamily: 'Poppins_400Regular', 
-  },
-  contentContainer: {
-    flex: 1,
-    marginBottom: 0, // Ensure no extra margin
+    marginLeft: 10,
   },
   gridList: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 10, 
+    paddingBottom: 80,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  gridItemContainer: {
+    width: '48%',
   },
   gridItem: {
-    flex: 1,
-    maxWidth: '48%', // Allow for spacing between items
     backgroundColor: '#fff', 
-    margin: 6,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center', 
-    padding: 12,
+    padding: 10,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  imageContainer: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#F0F0F0',
-    marginBottom: 8,
   },
   gridImage: {
-    width: '100%',
-    height: '100%',
+    width: 100, 
+    height: 100, 
+    borderRadius: 10,
     resizeMode: 'cover',
   },
   gridText: {
-    width: '100%',
+    marginTop: 8, 
     fontSize: 14, 
-    fontFamily: 'Poppins_600SemiBold', 
+    fontFamily: 'Poppins_400Regular', 
     color: '#4B3130',
     textAlign: 'center',
-    marginVertical: 4,
   },
   priceText: {
     fontSize: 16,
-    fontFamily: 'Poppins_700Bold',
+    fontFamily: 'Poppins_600SemiBold',
     color: '#DBA6B6',
-    marginTop: 2,
+    marginTop: 4,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
   },
   emptyText: {
     fontSize: 18,
-    fontFamily: 'Poppins_600SemiBold',
+    fontFamily: 'Poppins_400Regular',
     color: '#4B3130',
-    marginTop: 16,
-    textAlign: 'center',
   },
-  navbar: {
-    paddingBottom: 0,
-  },
-  cartButton: {
-  padding: 6,
-}
 });
 
 export default UserProductsListPage;
