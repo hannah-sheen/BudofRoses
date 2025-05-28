@@ -5,120 +5,160 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ref, get, child } from 'firebase/database';
-import Navbar from './navBar';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { ref, get } from 'firebase/database';
 import { database } from './firebaseConfig';
+
+interface UserData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
 
 const Profile = () => {
   const router = useRouter();
-  const [userData, setUserData] = useState<any>(null);
+  const params = useLocalSearchParams();
+  const username = params.username as string;
+  
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const storedUsername = await AsyncStorage.getItem('username');
-        if (!storedUsername) {
-          console.error('No stored username found.');
+        if (!username) {
+          Alert.alert('Error', 'No username provided');
+          router.replace('/');
           return;
         }
 
-        const dbRef = ref(database);
-        const snapshot = await get(child(dbRef, 'users'));
+        const userRef = ref(database, `users/${username}`);
+        const snapshot = await get(userRef);
 
         if (snapshot.exists()) {
-          const users = snapshot.val();
-          const matchedUser = Object.values(users).find(
-            (user: any) => user.username === storedUsername
-          );
-
-          if (matchedUser) {
-            setUserData(matchedUser);
-          } else {
-            console.error('User not found in database.');
-          }
+          setUserData(snapshot.val());
         } else {
-          console.error('No users data found.');
+          Alert.alert('Error', 'User not found');
+          router.replace('/');
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
+        Alert.alert('Error', 'Failed to load user data');
       } finally {
         setLoading(false);
       }
     };
 
     fetchUserData();
-  }, []);
+  }, [username, router]);
 
-  const handleLogout = async () => {
-    await AsyncStorage.removeItem('username');
-    router.replace('/');
+  const handleLogout = () => {
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to log out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            // Any cleanup logic here if needed
+            router.replace('/');
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   if (loading) {
     return (
-      <View
-        style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}
-      >
+      <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color="#4B3130" />
+      </View>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <Text>No user data available</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Header with addToCart style */}
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/userProductList')}>
+        <TouchableOpacity 
+          onPress={() => router.push({
+            pathname: "/userProductList",
+            params: { username: username }
+          })}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>User Profile</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <View style={styles.infoBox}>
-        <Text style={styles.label}>Name:</Text>
-        <Text style={styles.value}>
-          {userData.firstName} {userData.lastName}
-        </Text>
-
-        <Text style={styles.label}>Address:</Text>
-        <Text style={styles.value}>{userData.address}</Text>
-
-        <Text style={styles.label}>Phone:</Text>
-        <Text style={styles.value}>{userData.phone}</Text>
-
-        <Text style={styles.label}>Email:</Text>
-        <Text style={styles.value}>{userData.email}</Text>
-
-        <Text style={styles.label}>Username:</Text>
-        <Text style={styles.value}>{userData.username}</Text>
-
-        <Text style={styles.label}>Password:</Text>
-        <View style={styles.passwordContainer}>
-          <Text style={[styles.value, { flex: 1 }]}>
-            {showPassword ? userData.password : '******'}
-          </Text>
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Ionicons
-              name={showPassword ? 'eye' : 'eye-off'}
-              size={24}
-              color="#4B3130"
-            />
-          </TouchableOpacity>
+        
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>User Profile</Text>
         </View>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
+      {/* Scrollable Content */}
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* User Information */}
+        <View style={styles.infoBox}>
+          <Text style={styles.sectionTitle}>Personal Information</Text>
+          
+          <Text style={styles.label}>Name:</Text>
+          <Text style={styles.value}>
+            {userData.firstName} {userData.lastName}
+          </Text>
 
-      <Navbar />
+          <Text style={styles.label}>Email:</Text>
+          <Text style={styles.value}>{userData.email}</Text>
+
+          <Text style={styles.label}>Phone:</Text>
+          <Text style={styles.value}>{userData.phone || 'Not provided'}</Text>
+
+          <Text style={styles.sectionTitle}>Address Information</Text>
+
+          <Text style={styles.label}>Address:</Text>
+          <Text style={styles.value}>{userData.address || 'Not provided'}</Text>
+
+          <Text style={styles.label}>City:</Text>
+          <Text style={styles.value}>{userData.city || 'Not provided'}</Text>
+
+          <Text style={styles.label}>State:</Text>
+          <Text style={styles.value}>{userData.state || 'Not provided'}</Text>
+
+          <Text style={styles.label}>Zip Code:</Text>
+          <Text style={styles.value}>{userData.zipCode || 'Not provided'}</Text>
+        </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity 
+          style={styles.logoutButton} 
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 };
@@ -128,19 +168,43 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#D9D3C3',
   },
+  scrollContainer: {
+    paddingBottom: 80,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     backgroundColor: '#4B3130',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    padding: 15,
+    paddingVertical: 15,
     width: '100%',
+    position: 'relative',
+  },
+  backButton: {
+    paddingHorizontal: 20,
+    zIndex: 1,
+  },
+  editButton: {
+    paddingHorizontal: 20,
+    zIndex: 1,
+  },
+  headerTitleContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#fff',
+    fontFamily: 'Poppins_600SemiBold',
   },
   infoBox: {
     backgroundColor: '#fff',
@@ -149,34 +213,46 @@ const styles = StyleSheet.create({
     elevation: 2,
     marginHorizontal: 20,
     marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  sectionTitle: {
+    fontFamily: 'Poppins_600SemiBold',
+    color: '#4B3130',
+    fontSize: 18,
+    marginVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    paddingBottom: 5,
   },
   label: {
     fontFamily: 'Poppins_500Medium',
     color: '#4B3130',
     fontSize: 16,
+    marginTop: 8,
   },
   value: {
     fontFamily: 'Poppins_400Regular',
-    color: '#ACBA96',
+    color: '#666',
     fontSize: 16,
-    marginBottom: 10,
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 15,
   },
   logoutButton: {
-    marginTop: 40,
+    marginTop: 30,
     backgroundColor: '#4B3130',
     padding: 15,
     borderRadius: 10,
     marginHorizontal: 20,
+    elevation: 3,
+    marginBottom: 20,
   },
   logoutText: {
     color: '#fff',
     fontFamily: 'Poppins_600SemiBold',
     textAlign: 'center',
+    fontSize: 16,
   },
 });
 

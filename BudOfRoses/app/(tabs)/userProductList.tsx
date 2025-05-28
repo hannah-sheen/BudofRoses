@@ -144,7 +144,7 @@ const UserProductsListPage = () => {
     
     {/* Navbar at the very bottom */}
     <View style={styles.navbar}>
-      <Navbar/>
+      <Navbar username={username}/>
     </View>
   </SafeAreaView>
  )
