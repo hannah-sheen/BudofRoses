@@ -209,8 +209,8 @@ const CustomerSignupForm = () => {
             render={({ field: { onChange, onBlur, value } }) => (
               <TextInput
                 style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-                placeholder="(123) 456-7890"
-                keyboardType="phone-pad"
+                placeholder="0912 345 6789"
+                keyboardType="number-pad"
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -284,7 +284,7 @@ const CustomerSignupForm = () => {
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-                  placeholder="10001"
+                  placeholder="6000"
                   keyboardType="number-pad"
                   onBlur={onBlur}
                   onChangeText={onChange}
