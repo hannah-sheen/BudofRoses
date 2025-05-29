@@ -147,6 +147,12 @@ const {
       </View>
       {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
 
+      <View style={styles.forgotPasswordContainer}>
+        <TouchableOpacity onPress={() => router.push('/forgotPass')}>
+          <Text style={styles.forgotLink}>Forgot Password?</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Login Button */}
       <TouchableOpacity
         style={styles.loginButton}
@@ -166,10 +172,6 @@ const {
           <Text style={styles.signupLink}> Sign up</Text>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity onPress={() => router.push('/forgotPass')}>
-        <Text style={styles.forgotLink}>Forgot Password?</Text>
-      </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 };
@@ -232,7 +234,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 15,
+    marginBottom: 15,
   },
   loginButtonText: {
     color: '#fff',
@@ -259,14 +261,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Poppins_400Regular',
   },
+  forgotPasswordContainer: {
+    width: '100%',
+    alignItems: 'flex-end',
+    padding: 10,
+    justifyContent: 'center',
+  },
   forgotLink: {
-  fontSize: 14,
-  fontFamily: 'Poppins_500Medium',
-  color: '#4B3130',
-  marginTop: 10,
-  textAlign: 'center',
-  textDecorationLine: 'underline',
-}
+    fontSize: 14,
+    fontFamily: 'Poppins_500Medium',
+    color: '#4B3130',
+    textDecorationLine: 'none',
+  },
 });
 
 export default LoginScreen;

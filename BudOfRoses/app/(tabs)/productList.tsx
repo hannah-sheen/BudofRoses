@@ -102,64 +102,6 @@ const ProductsListPage = () => {
       );
     };
 
-
-  // const renderProductItem = ({ item }: { item: Product }) => {
-  //   const isLowStock = item.stocks < LOW_STOCK_THRESHOLD;
-    
-  //   return (
-  //     <TouchableOpacity 
-  //       onPress={() => router.push({
-  //         pathname: '/productDetails',
-  //         params: { productId: item.id }  
-  //       })}
-  //     >
-  //       <View style={[
-  //         styles.productCard,
-  //         isLowStock && styles.lowStockCard
-  //       ]}>
-  //         <Image source={{ uri: item.image }} style={styles.productImage} />
-  //         <View style={styles.productInfo}>
-  //           <View style={styles.nameContainer}>
-  //             <Text style={styles.productName}>{item.productName}</Text>
-  //             {isLowStock && (
-  //               <View style={styles.lowStockBadge}>
-  //                 <Text style={styles.lowStockText}>LOW STOCK</Text>
-  //               </View>
-  //             )}
-  //           </View>
-  //           <Text style={styles.productCategory}>{item.category}</Text>
-  //           <View style={styles.statsContainer}>
-  //             <View style={styles.statItem}>
-  //               <Ionicons name="pricetag" size={16} color="#4B3130" />
-  //               <Text style={styles.statText}>₱{item.price.toFixed(2)}</Text>
-  //             </View>
-  //             <View style={styles.statItem}>
-  //               <Ionicons name="cart" size={16} color="#4B3130" />
-  //               <Text style={styles.statText}>{item.sales ?? 0}</Text>
-  //             </View>
-  //             <View style={[
-  //               styles.statItem,
-  //               isLowStock && styles.lowStockStat
-  //             ]}>
-  //               <Ionicons 
-  //                 name="cube" 
-  //                 size={16} 
-  //                 color={isLowStock ? '#FF3B30' : '#4B3130'} 
-  //               />
-  //               <Text style={[
-  //                 styles.statText,
-  //                 isLowStock && styles.lowStockStatText
-  //               ]}>
-  //                 {item.stocks}
-  //               </Text>
-  //             </View>
-  //           </View>
-  //         </View>
-  //       </View>
-  //     </TouchableOpacity>
-  //   );
-  // };
-
   const renderProductItem = ({ item }: { item: Product }) => {
     const isLowStock = item.stocks < LOW_STOCK_THRESHOLD;
     
