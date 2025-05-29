@@ -31,12 +31,14 @@ const signupSchema = yup.object().shape({
   address: yup.string().required('Address is required'),
   city: yup.string().required('City is required'),
   state: yup.string().required('State is required'),
-  zipCode: yup.string()
-    .required('ZIP code is required')
-    .matches(/^\d{5}(?:[-\s]\d{4})?$/, 'Invalid ZIP code format'),
-  phone: yup.string()
-    .required('Phone number is required')
-    .matches(/^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/, 'Invalid phone number format'),
+  zipCode: yup
+  .string()
+  .required('ZIP code is required')
+  .matches(/^\d{4}$/, 'Invalid ZIP code format'),
+  phone: yup
+  .string()
+  .required('Phone number is required')
+  .matches(/^\d{11}$/, 'Phone number must be exactly 11 digits'),
 });
 
 const CustomerSignupForm = () => {
@@ -210,8 +212,8 @@ const CustomerSignupForm = () => {
             render={({ field: { onChange, onBlur, value } }) => (
               <TextInput
                 style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-                placeholder="(123) 456-7890"
-                keyboardType="phone-pad"
+                placeholder="0912 345 6789"
+                keyboardType="number-pad"
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -285,7 +287,7 @@ const CustomerSignupForm = () => {
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   style={[styles.input, { fontFamily: 'Poppins_400Regular' }]}
-                  placeholder="10001"
+                  placeholder="6000"
                   keyboardType="number-pad"
                   onBlur={onBlur}
                   onChangeText={onChange}
