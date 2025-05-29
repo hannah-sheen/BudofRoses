@@ -41,12 +41,13 @@ const LoginScreen = () => {
     Poppins_600SemiBold,
   });
 
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors },
-  } = useForm({
+const {
+  control,
+  handleSubmit,
+  setValue,
+  reset,
+  formState: { errors },
+} = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
       username: '',
@@ -59,6 +60,7 @@ const LoginScreen = () => {
 
     if (username === 'Admin_01' && password === 'iamtheadmin') {
       setLoading(false);
+      reset();
       router.push('/productList');
       return;
     }
@@ -76,6 +78,7 @@ const LoginScreen = () => {
 
         if (matchedUser) {
           setLoading(false);
+          reset();
           router.push({ pathname: '/userProductList', params: { username } });
         } else {
           setLoading(false);
@@ -180,15 +183,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   logo: {
-    width: 300,
-    height: 200,
+    width: 200,
+    height: 100,
     marginBottom: 20,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Poppins_400Regular',
     color: '#666',
-    marginBottom: 30,
+    marginBottom: 10,
   },
   input: {
     width: '100%',

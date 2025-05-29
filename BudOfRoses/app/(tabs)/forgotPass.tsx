@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { getDatabase, ref, get, update } from 'firebase/database';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, Poppins_400Regular, Poppins_600SemiBold } from '@expo-google-fonts/poppins';
+import { useFocusEffect } from '@react-navigation/native';
 
 const ForgotPassSchema = Yup.object().shape({
   identifier: Yup.string().required('Username or email is required'),
@@ -31,13 +32,21 @@ const ForgotPassScreen = () => {
   const [loading, setLoading] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formKey, setFormKey] = useState(0); // Used to reset Formik
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_600SemiBold,
   });
 
-  const handleResetPassword = async (values: any) => {
+  // Reset Formik state when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setFormKey((prev) => prev + 1);
+    }, [])
+  );
+
+  const handleResetPassword = async (values: any, resetForm: () => void) => {
     const db = getDatabase();
     const usersRef = ref(db, 'users/');
     setLoading(true);
@@ -49,8 +58,8 @@ const ForgotPassScreen = () => {
         const userKey = Object.keys(users).find((key) => {
           const user = users[key];
           return (
-            user.username.toLowerCase() === values.identifier.toLowerCase() ||
-            user.email.toLowerCase() === values.identifier.toLowerCase()
+            user.username?.toLowerCase() === values.identifier.toLowerCase() ||
+            user.email?.toLowerCase() === values.identifier.toLowerCase()
           );
         });
 
@@ -61,6 +70,7 @@ const ForgotPassScreen = () => {
             password: values.newPassword,
           });
           Alert.alert('Success', 'Password updated successfully');
+          resetForm();
           router.push('/');
         }
       } else {
@@ -94,9 +104,10 @@ const ForgotPassScreen = () => {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Formik
+          key={formKey}
           initialValues={{ identifier: '', newPassword: '', confirmPassword: '' }}
           validationSchema={ForgotPassSchema}
-          onSubmit={handleResetPassword}
+          onSubmit={(values, { resetForm }) => handleResetPassword(values, resetForm)}
         >
           {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
             <View style={styles.form}>
@@ -247,20 +258,20 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_600SemiBold',
   },
   passwordContainer: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  borderWidth: 1,
-  borderColor: '#ccc',
-  paddingHorizontal: 12,
-  borderRadius: 8,
-  marginBottom: 12,
-},
-passwordInput: {
-  flex: 1,
-  paddingVertical: 12,
-  fontFamily: 'Poppins_400Regular',
-  color: '#4B3130',
-},
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontFamily: 'Poppins_400Regular',
+    color: '#4B3130',
+  },
 });
 
 export default ForgotPassScreen;

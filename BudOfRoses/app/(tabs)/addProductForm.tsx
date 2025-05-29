@@ -44,20 +44,21 @@ const AddProductForm = () => {
   const [loading, setLoading] = useState(false);
 
   const {
-    control,
-    handleSubmit,
-    setValue,
-    formState: { errors },
-  } = useForm({
-    resolver: yupResolver(schema),
-    defaultValues: {
-      productName: '',
-      description: '',
-      price: 0,
-      quantity: 0,
-      category: 'Select',
-    },
-  });
+  control,
+  handleSubmit,
+  setValue,
+  reset, // 👈 Add this
+  formState: { errors },
+} = useForm({
+  resolver: yupResolver(schema),
+  defaultValues: {
+    productName: '',
+    description: '',
+    price: 0,
+    quantity: 0,
+    category: 'Select',
+  },
+});
 
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -92,7 +93,7 @@ const AddProductForm = () => {
     }
   };
 
-  const onSubmit = async (data: any) => {
+ const onSubmit = async (data: any) => {
     if (!image) {
       alert('Please select an image.');
       return;
@@ -113,6 +114,11 @@ const AddProductForm = () => {
       await push(productListRef, productData);
       setLoading(false);
       alert('Product added successfully!');
+
+      // Reset form fields and image
+      reset();
+      setImage(null);
+
       router.push('/productList');
     } catch (error) {
       console.error('Error adding product:', error);
@@ -120,6 +126,7 @@ const AddProductForm = () => {
       alert('Failed to add product.');
     }
   };
+
 
   if (!fontsLoaded) return null;
   if (loading) {
