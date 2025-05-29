@@ -36,7 +36,6 @@ const signupSchema = yup.object().shape({
     .matches(/^\d{5}(?:[-\s]\d{4})?$/, 'Invalid ZIP code format'),
   phone: yup.string()
     .required('Phone number is required')
-    .matches(/^(\+\d{1,2}\s)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/, 'Invalid phone number format'),
 });
 
 const CustomerSignupForm = () => {

@@ -422,7 +422,8 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#F8F5F0',
-    justifyContent: 'space-between', // This will push header to top and navbar to bottom
+    justifyContent: 'space-between',
+    paddingBottom: 10, // This will push header to top and navbar to bottom
   },
   loadingContainer: {
     flex: 1,

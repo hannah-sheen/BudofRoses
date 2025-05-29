@@ -27,11 +27,11 @@ const schema = yup.object().shape({
     .typeError('Price must be a number')
     .positive('Price must be positive')
     .required('Price is required'),
-  quantity: yup
+  stocks: yup
     .number()
-    .typeError('Quantity must be a number')
-    .min(1, 'Minimum quantity is 1')
-    .required('Quantity is required'),
+    .typeError('Stocks must be a number')
+    .min(1, 'Minimum stocks is 1')
+    .required('Stocks is required'),
   category: yup
     .string()
     .notOneOf(['Select'], 'Please choose a valid category')
@@ -47,7 +47,7 @@ const AddProductForm = () => {
   control,
   handleSubmit,
   setValue,
-  reset, // 👈 Add this
+  reset,
   formState: { errors },
 } = useForm({
   resolver: yupResolver(schema),
@@ -55,7 +55,7 @@ const AddProductForm = () => {
     productName: '',
     description: '',
     price: 0,
-    quantity: 0,
+    stocks: 0,
     category: 'Select',
   },
 });
@@ -102,7 +102,7 @@ const AddProductForm = () => {
     const productData = {
       ...data,
       price: parseFloat(data.price),
-      stocks: parseInt(data.quantity),
+      stocks: parseInt(data.stocks),
       image,
       createdAt: new Date().toISOString(),
       sales: 0,
@@ -214,18 +214,19 @@ const AddProductForm = () => {
         <Text style={styles.label}>Available Stocks</Text>
         <Controller
           control={control}
-          name="quantity"
+          name="stocks"
           render={({ field: { onChange, value } }) => (
             <TextInput
               style={styles.input}
-              placeholder="Enter quantity"
+              placeholder="Enter stocks"
               keyboardType="numeric"
               onChangeText={onChange}
               value={value?.toString()}
             />
           )}
         />
-        {errors.quantity && <Text style={styles.error}>{errors.quantity.message}</Text>}
+        <Text>stocks</Text>
+        {errors.stocks && <Text style={styles.error}>{errors.stocks.message}</Text>}
 
         {/* Category */}
         <Text style={styles.label}>Category</Text>

@@ -372,6 +372,77 @@ const CheckoutScreen = () => {
   const subtotal = orderItem ? orderItem.price * orderItem.quantity : 0;
   const totalAmount = subtotal + shippingFee;
 
+  // const handlePlaceOrder = async () => {
+  //   if (!username || !orderItem) {
+  //     Alert.alert('Error', 'Invalid order data');
+  //     return;
+  //   }
+
+  //   setLoading(true);
+    
+  //   try {
+  //     // Get customer details first
+  //     const userRef = ref(database, `users/${username}`);
+  //     const userSnapshot = await get(userRef);
+      
+  //     if (!userSnapshot.exists()) {
+  //       throw new Error('User not found');
+  //     }
+      
+  //     const userData: UserData = {
+  //       firstName: userSnapshot.val().firstName,
+  //       lastName: userSnapshot.val().lastName
+  //     };
+
+  //     // Create order in database with simplified structure
+  //     const ordersRef = ref(database, `orders`);
+  //     const newOrderRef = push(ordersRef);
+      
+  //     const orderData = {
+  //       itemName: orderItem.productName,
+  //       quantity: orderItem.quantity,
+  //       itemPrice: orderItem.price,
+  //       totalAmount: totalAmount,
+  //       dateOrdered: new Date().toISOString(),
+  //       productImage: orderItem.image,
+  //       customerName: `${userData.firstName} ${userData.lastName}`,
+  //       customerUsername: username,
+  //     };
+      
+  //     await set(newOrderRef, orderData);
+      
+  //     // Update product stock
+  //     const productRef = ref(database, `productlist/${orderItem.productId}`);
+  //     const productSnapshot = await get(productRef);
+      
+  //     if (productSnapshot.exists()) {
+  //       const currentStock = productSnapshot.val().stocks || 0;
+  //       const newStock = currentStock - orderItem.quantity;
+        
+  //       await update(productRef, { stocks: Math.max(0, newStock) });
+  //     }
+    
+  //     Alert.alert(
+  //       'Order Placed', 
+  //       'Your order has been placed successfully!',
+  //       [
+  //         { 
+  //           text: 'OK', 
+  //           onPress: () => router.replace({
+  //             pathname: '/userProductList',
+  //             params: { username }
+  //           })
+  //         }
+  //       ]
+  //     );
+  //   } catch (error) {
+  //     console.error('Error placing order:', error);
+  //     Alert.alert('Error', 'Failed to place order');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handlePlaceOrder = async () => {
     if (!username || !orderItem) {
       Alert.alert('Error', 'Invalid order data');
@@ -411,15 +482,20 @@ const CheckoutScreen = () => {
       
       await set(newOrderRef, orderData);
       
-      // Update product stock
+      // Update product stock and sales
       const productRef = ref(database, `productlist/${orderItem.productId}`);
       const productSnapshot = await get(productRef);
       
       if (productSnapshot.exists()) {
         const currentStock = productSnapshot.val().stocks || 0;
+        const currentSales = productSnapshot.val().sales || 0;
         const newStock = currentStock - orderItem.quantity;
+        const newSales = currentSales + orderItem.quantity;
         
-        await update(productRef, { stocks: Math.max(0, newStock) });
+        await update(productRef, { 
+          stocks: Math.max(0, newStock),
+          sales: newSales
+        });
       }
     
       Alert.alert(

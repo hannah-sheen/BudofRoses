@@ -343,6 +343,36 @@ const ViewProduct = () => {
     return () => unsubscribe();
   }, [productId]);
 
+  // const handleBuyNow = () => {
+  //   if (!product || !username) {
+  //     Alert.alert('Error', 'Missing product or user info');
+  //     return;
+  //   }
+
+  //   if (quantity > product.stocks) {
+  //     Alert.alert('Error', 'Not enough stock available');
+  //     return;
+  //   }
+
+  //   const orderDetails = {
+  //     productId: product.id,
+  //     productName: product.productName,
+  //     image: product.image,
+  //     price: product.price,
+  //     quantity: quantity,
+  //     totalAmount: product.price * quantity,
+  //     category: product.category,
+  //     stocks: product.stocks,
+  //   };
+
+  //   router.push({
+  //     pathname: '/checkout',
+  //     params: {
+  //       username: username,
+  //       orderDetails: JSON.stringify(orderDetails),
+  //     },
+  //   });
+  // };
   const handleBuyNow = () => {
     if (!product || !username) {
       Alert.alert('Error', 'Missing product or user info');
