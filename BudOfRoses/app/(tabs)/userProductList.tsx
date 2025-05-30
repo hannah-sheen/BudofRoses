@@ -1,15 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Image, TextInput, SafeAreaView, ActivityIndicator
-} from 'react-native';
+import { Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold, useFonts } from '@expo-google-fonts/poppins';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useFonts, Poppins_400Regular, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
-import Navbar from './navBar';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { onValue, ref } from 'firebase/database';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { database } from './firebaseConfig';
-import { ref, onValue } from 'firebase/database';
-import { useLocalSearchParams } from 'expo-router';
+import Navbar from './navBar';
 
 type Product = {
   id: string;
@@ -144,7 +150,6 @@ const styles = StyleSheet.create({
     flex: 1, 
     backgroundColor: '#F8F5F0',
     justifyContent: 'space-between',
-    paddingBottom: 10, // This will push header to top and navbar to bottom
   },
   loadingContainer: {
     flex: 1,
@@ -197,7 +202,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    marginBottom: 0, // Ensure no extra margin
+    marginBottom: 65, // Ensure no extra margin
   },
   gridList: {
     paddingHorizontal: 16,
